@@ -15,6 +15,7 @@ from stylesheet import style
 #TODO add logged as viewer or admin
 #TODO perform multiple threading to get all servers at once (10 by 10)
 #TODO add match for the reservation user (not only item)
+#TODO the action button also need to be a field
 
 
 class DataThread(QThread):
