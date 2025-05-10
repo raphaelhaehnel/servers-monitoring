@@ -1,0 +1,44 @@
+[
+  {
+    "host": "server-01",
+    "app": "WebApp",
+    "ip": "192.168.0.10",
+    "available": true,
+    "reservation_start": "2025-05-11T08:30:00"
+  },
+  {
+    "host": "db-primary",
+    "app": "Database",
+    "ip": "192.168.0.20",
+    "available": false,
+    "reservation_start": "2025-05-11T07:15:00"
+  },
+  {
+    "host": "cache-redis",
+    "app": "RedisCache",
+    "ip": "192.168.0.30",
+    "available": true,
+    "reservation_start": "2025-05-11T09:00:00"
+  },
+  {
+    "host": "worker-04",
+    "app": "BackgroundJob",
+    "ip": "192.168.0.40",
+    "available": "other",
+    "reservation_start": ""
+  },
+  {
+    "host": "cache01",
+    "app": "Redis-new",
+    "ip": "192.168.0.41",
+    "available": "other",
+    "reservation_start": ""
+  },
+  {
+    "host": "cache01",
+    "app": "Redis-new",
+    "ip": "192.168.0.41",
+    "available": true,
+    "reservation_start": ""
+  }
+]
