@@ -1,11 +1,14 @@
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QScrollArea, QLineEdit, QSizePolicy
+    QLabel, QPushButton, QScrollArea, QLineEdit, QSizePolicy, QDialogButtonBox, QDialog, QInputDialog
 )
 from PySide6.QtCore import Qt, QThread, Signal
 
 import sys, json, time
+
+from sympy import false
+
 from stylesheet import style
 
 #TODO the css is not applying on the customTitleBar
@@ -14,8 +17,10 @@ from stylesheet import style
 #TODO add logs for each action that has been done
 #TODO add logged as viewer or admin
 #TODO perform multiple threading to get all servers at once (10 by 10)
-#TODO add match for the reservation user (not only item)
-#TODO the action button also need to be a field
+#TODO modify the reservation by clicking on it. A window should show with:
+# - name of the user
+# - what does he want to check
+#TODO add icon
 
 
 class DataThread(QThread):
@@ -74,14 +79,48 @@ class CustomTitleBar(QWidget):
         if event.buttons() == Qt.LeftButton:
             self.parent.move(event.globalPosition().toPoint() - self.offset)
 
+class LoginDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Login")
+        self.is_admin = False
+
+        layout = QVBoxLayout(self)
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+
+        # Role selection
+        self.role_input = QLineEdit()
+        self.role_input.setPlaceholderText("Type 'admin' for admin, anything else for guest")
+
+        layout.addWidget(QLabel("Select role ('admin' for administrator):"))
+        layout.addWidget(self.role_input)
+        layout.addWidget(buttons)
+
+        buttons.accepted.connect(self.handle_login)
+        buttons.rejected.connect(self.reject)
+
+    def handle_login(self):
+        role = self.role_input.text().strip().lower()
+        if role == 'admin':
+            pwd, ok = QInputDialog.getText(self, "Password", "Enter admin password:", QLineEdit.Password)
+            if ok and pwd == 'admin123':  # set your admin password here
+                self.is_admin = True
+                self.accept()
+            else:
+                QLabel("Incorrect password").show()
+        else:
+            self.is_admin = False
+            self.accept()
+
 class ListItem(QWidget):
-    def __init__(self, host, app, ip, available, reservation_start):
+    def __init__(self, host, app, ip, available, action_text, reservation_start, is_admin):
         super().__init__()
         self.host = host
         self.app = app
         self.ip = ip
         self.available = available
         self.reservation_start = reservation_start
+        self.action_text = action_text
 
         layout = QHBoxLayout()
         layout.setSpacing(10)
@@ -90,8 +129,9 @@ class ListItem(QWidget):
         label2 = QLabel(app)
         label_ip = QLabel(ip)
         available_text = QLabel(str(available))
-        button = QPushButton("Action")
+        button = QPushButton(action_text)
         label3 = QLabel(reservation_start)
+        button.setEnabled(is_admin)
 
         # Ensure fixed width for alignment
         for widget, width in zip(
@@ -122,14 +162,17 @@ class ListItem(QWidget):
             q in self.app.lower() or
             q in self.ip.lower() or
             q in str(self.available).lower() or
-            q in self.reservation_start.lower()
+            q in self.reservation_start.lower() or
+            q in self.action_text.lower()
         )
 
 class MainWindow(QWidget):
-    def __init__(self, json_path="data.json", update_interval=5):
+    def __init__(self, json_path="data.json", update_interval=5, is_admin: bool = false):
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint)
         main_layout = QVBoxLayout(self)
+
+        self.is_admin = is_admin
 
         title_bar = CustomTitleBar(self)
         main_layout.addWidget(title_bar)
@@ -178,7 +221,9 @@ class MainWindow(QWidget):
                 entry.get("app", ""),
                 entry.get("ip", ""),
                 entry.get("available", None),
-                entry.get("reservation_start", "")
+                entry.get("action", ""),
+                entry.get("reservation_start", ""),
+                self.is_admin
             )
             self.scroll_layout.addWidget(item)
             self.items.append(item)
@@ -201,7 +246,11 @@ class MainWindow(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyleSheet(style)
-    window = MainWindow()
-    window.resize(1000, 600)
-    window.show()
-    sys.exit(app.exec())
+
+    # Login
+    login = LoginDialog()
+    if login.exec() == QDialog.Accepted:
+        window = MainWindow(is_admin=login.is_admin)
+        window.resize(1000, 600)
+        window.show()
+        sys.exit(app.exec())

@@ -4,6 +4,7 @@
     "app": "WebApp",
     "ip": "192.168.0.10",
     "available": true,
+    "action": "Allocate",
     "reservation_start": "2025-05-11T08:30:00"
   },
   {
@@ -11,6 +12,7 @@
     "app": "Database",
     "ip": "192.168.0.20",
     "available": false,
+    "action": "Yossef Katri",
     "reservation_start": "2025-05-11T07:15:00"
   },
   {
@@ -18,6 +20,7 @@
     "app": "RedisCache",
     "ip": "192.168.0.30",
     "available": true,
+    "action": "Allocate",
     "reservation_start": "2025-05-11T09:00:00"
   },
   {
@@ -25,6 +28,7 @@
     "app": "BackgroundJob",
     "ip": "192.168.0.40",
     "available": "other",
+    "action": "Operational",
     "reservation_start": ""
   },
   {
@@ -32,6 +36,7 @@
     "app": "Redis-new",
     "ip": "192.168.0.41",
     "available": "other",
+    "action": "Don't touch",
     "reservation_start": ""
   },
   {
@@ -39,6 +44,7 @@
     "app": "Redis-new",
     "ip": "192.168.0.41",
     "available": true,
+    "action": "Allocate",
     "reservation_start": ""
   }
 ]
