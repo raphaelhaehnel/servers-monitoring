@@ -37,6 +37,10 @@ style = """
     QLabel {
         padding: 2px;
     }
+    
+    QFrame QLabel {
+        background-color: #3c3f41;
+    }
 
     QScrollBar:vertical {
         background: #3c3f41;
@@ -136,4 +140,17 @@ style = """
     color: white;
     border-bottom: 1px solid #34495e;
     }
+    
+    #cardFrame {
+    background-color: #3c3f41;
+    border-radius: 15px;
+    padding: 1px;
+    margin: 1px;
+    border: 1px solid #555;
+    }
+    
+    QWidget#customTitleBar QPushButton:disabled {
+    background-color: #388e3c;
+    }
+}
 """

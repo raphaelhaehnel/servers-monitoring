@@ -1,7 +1,6 @@
-from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QScrollArea, QLineEdit, QSizePolicy, QDialogButtonBox, QDialog, QInputDialog
+    QLabel, QPushButton, QScrollArea, QLineEdit, QSizePolicy, QDialogButtonBox, QDialog, QInputDialog, QFrame
 )
 from PySide6.QtCore import Qt, QThread, Signal
 
@@ -9,25 +8,30 @@ import sys, json, time
 
 from sympy import false
 
+from consts import ColumnWidth
 from stylesheet import style
+from widgets.customTitleBar import CustomTitleBar
+from widgets.listItem import ListItem
 
-#TODO the css is not applying on the customTitleBar
-#TODO add icons for close, minimize, settings like in Dorban
 
-#TODO add logs for each action that has been done
-#TODO add logged as viewer or admin
-#TODO perform multiple threading to get all servers at once (10 by 10)
-#TODO modify the reservation by clicking on it. A window should show with:
-# - name of the user
-# - what does he want to check
-#TODO add icon\
-#TODO login as admin
-#TODO make a background as card in listTile, and color it (green/red/normal)
-#TODO add column for environment
-#TODO add checkboxes for: available, occupied, operational, type (gw, microservice, mid, heart, other, emda)
-#TODO from: it must be 'since' instead of absolute time
-#TODO In the lower right side, display when was the last update of the servers, and add a button for refresh now
-#TODO add settings: show scripts from rpmqa ?
+# TODO the css is not applying on the customTitleBar
+# TODO add icons for close, minimize, settings like in Dorban
+
+# TODO add logs for each action that has been done
+# TODO add logged as viewer or admin
+# TODO perform multiple threading to get all servers at once (10 by 10)
+# TODO modify the reservation by clicking on it. A window should show with:
+# TODO - name of the user
+# TODO - what does he want to check
+# TODO add icon
+# TODO login as admin
+# TODO make a background as card in listTile, and color it (green/red/normal)
+# TODO add checkboxes for: available, occupied, operational, type (gw, microservice, mid, heart, other, emda)
+# TODO from: it must be 'since' instead of absolute time
+# TODO In the lower right side, display when was the last update of the servers, and add a button for refresh now
+# TODO add settings: show scripts from rpmqa ?
+# TODO vertical alignment with the header
+# TODO add 'about'
 
 class DataThread(QThread):
     data_updated = Signal(list)
@@ -51,129 +55,9 @@ class DataThread(QThread):
     def stop(self):
         self.running = False
 
-class CustomTitleBar(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.parent = parent
-        self.setFixedHeight(40)
-        self.setObjectName("customTitleBar")
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 0, 10, 0)
-        self.title = QLabel("FacIT")
-        self.title.setObjectName("titleLabel")
-        layout.addWidget(self.title)
-        layout.addStretch()
-        self.minimize_button = QPushButton("-")
-        self.minimize_button.setFixedSize(20, 20)
-        self.minimize_button.clicked.connect(self.minimize_window)
-        layout.addWidget(self.minimize_button)
-        self.close_button = QPushButton("x")
-        self.close_button.setFixedSize(20, 20)
-        self.close_button.clicked.connect(self.close_window)
-        layout.addWidget(self.close_button)
-
-    def minimize_window(self):
-        self.parent.showMinimized()
-
-    def close_window(self):
-        self.parent.close()
-
-    def mousePressEvent(self, event: QMouseEvent):
-        self.offset = event.globalPosition().toPoint() - self.parent.pos()
-
-    def mouseMoveEvent(self, event: QMouseEvent):
-        if event.buttons() == Qt.LeftButton:
-            self.parent.move(event.globalPosition().toPoint() - self.offset)
-
-class LoginDialog(QDialog):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Login")
-        self.is_admin = False
-
-        layout = QVBoxLayout(self)
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-
-        # Role selection
-        self.role_input = QLineEdit()
-        self.role_input.setPlaceholderText("Type 'admin' for admin, anything else for guest")
-
-        layout.addWidget(QLabel("Select role ('admin' for administrator):"))
-        layout.addWidget(self.role_input)
-        layout.addWidget(buttons)
-
-        buttons.accepted.connect(self.handle_login)
-        buttons.rejected.connect(self.reject)
-
-    def handle_login(self):
-        role = self.role_input.text().strip().lower()
-        if role == 'admin':
-            pwd, ok = QInputDialog.getText(self, "Password", "Enter admin password:", QLineEdit.Password)
-            if ok and pwd == 'admin123':  # set your admin password here
-                self.is_admin = True
-                self.accept()
-            else:
-                QLabel("Incorrect password").show()
-        else:
-            self.is_admin = False
-            self.accept()
-
-class ListItem(QWidget):
-    def __init__(self, host, app, ip, available, action_text, reservation_start, is_admin):
-        super().__init__()
-        self.host = host
-        self.app = app
-        self.ip = ip
-        self.available = available
-        self.reservation_start = reservation_start
-        self.action_text = action_text
-
-        layout = QHBoxLayout()
-        layout.setSpacing(10)
-
-        label1 = QLabel(host)
-        label2 = QLabel(app)
-        label_ip = QLabel(ip)
-        available_text = QLabel(str(available))
-        button = QPushButton(action_text)
-        label3 = QLabel(reservation_start)
-        button.setEnabled(is_admin)
-
-        # Ensure fixed width for alignment
-        for widget, width in zip(
-            (label1, label2, label_ip, available_text, button, label3),
-            (150, 150, 150, 100, 80, 200)
-        ):
-            widget.setFixedWidth(width)
-            widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
-            layout.addWidget(widget)
-
-        self.setLayout(layout)
-
-        if available is True:
-            self.setObjectName("availableTrue")
-        elif available is False:
-            self.setObjectName("availableFalse")
-        else:
-            self.setObjectName("availableUnknown")
-
-        for lbl in (label1, label2, label_ip, available_text, label3):
-            lbl.setObjectName("lineLabel")
-        button.setObjectName("lineButton")
-
-    def matches(self, query):
-        q = query.lower()
-        return (
-            q in self.host.lower() or
-            q in self.app.lower() or
-            q in self.ip.lower() or
-            q in str(self.available).lower() or
-            q in self.reservation_start.lower() or
-            q in self.action_text.lower()
-        )
 
 class MainWindow(QWidget):
-    def __init__(self, json_path="data.json", update_interval=5, is_admin: bool = false):
+    def __init__(self, json_path="data.json", update_interval=3, is_admin: bool = false):
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint)
         main_layout = QVBoxLayout(self)
@@ -188,12 +72,16 @@ class MainWindow(QWidget):
         main_layout.addWidget(self.search_bar)
 
         header_layout = QHBoxLayout()
-        header_layout.setSpacing(10)
+        header_layout.setSpacing(8)
         bold_font = QLabel().font()
         bold_font.setBold(True)
+
+        shift = 20
         for name, width in zip(
-            ("Host", "App", "IP", "Available", "Reservation", "From"),
-            (150, 150, 150, 100, 90, 200)
+                ("Host", "App", "IP", "Env", "Available", "Reservation", "From"),
+                (ColumnWidth.HOST + shift, ColumnWidth.APP + shift, ColumnWidth.IP + shift, ColumnWidth.ENV + shift,
+                 ColumnWidth.AVAILABLE + shift,
+                 ColumnWidth.RESERVATION + shift, ColumnWidth.FROM + shift)
         ):
             lbl = QLabel(name)
             lbl.setFont(bold_font)
@@ -216,29 +104,39 @@ class MainWindow(QWidget):
         self.thread.start()
 
     def update_items(self, data_list):
-        for item in self.items:
-            self.scroll_layout.removeWidget(item)
-            item.deleteLater()
+        # remove every widget in the scroll_layout
+        while self.scroll_layout.count():
+            w = self.scroll_layout.takeAt(0).widget()
+            if w:
+                w.deleteLater()
         self.items.clear()
 
         for entry in data_list:
+            card = QFrame()
+            card.setFrameShape(QFrame.StyledPanel)
+            card.setObjectName("cardFrame")
+            card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(5, 2, 5, 2)
             item = ListItem(
                 entry.get("host", ""),
                 entry.get("app", ""),
                 entry.get("ip", ""),
+                entry.get("env", ""),
                 entry.get("available", None),
                 entry.get("action", ""),
                 entry.get("reservation_start", ""),
                 self.is_admin
             )
-            self.scroll_layout.addWidget(item)
-            self.items.append(item)
+            card_layout.addWidget(item)
+            self.scroll_layout.addWidget(card)
+            self.items.append((card, item))
 
         self.filter_items(self.search_bar.text())
 
     def filter_items(self, text):
-        for item in self.items:
-            item.setVisible(item.matches(text))
+        q = text.lower()
+        for card, item in self.items:
+            card.setVisible(item.matches(q))
 
     def closeEvent(self, event):
         # Stop background thread forcefully and immediately
@@ -249,14 +147,12 @@ class MainWindow(QWidget):
         # Proceed to close the window
         super().closeEvent(event)
 
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyleSheet(style)
 
-    # Login
-    login = LoginDialog()
-    if login.exec() == QDialog.Accepted:
-        window = MainWindow(is_admin=login.is_admin)
-        window.resize(1000, 600)
-        window.show()
-        sys.exit(app.exec())
+    window = MainWindow(is_admin=False)
+    window.resize(1000, 600)
+    window.show()
+    sys.exit(app.exec())
