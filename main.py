@@ -20,8 +20,14 @@ from stylesheet import style
 #TODO modify the reservation by clicking on it. A window should show with:
 # - name of the user
 # - what does he want to check
-#TODO add icon
-
+#TODO add icon\
+#TODO login as admin
+#TODO make a background as card in listTile, and color it (green/red/normal)
+#TODO add column for environment
+#TODO add checkboxes for: available, occupied, operational, type (gw, microservice, mid, heart, other, emda)
+#TODO from: it must be 'since' instead of absolute time
+#TODO In the lower right side, display when was the last update of the servers, and add a button for refresh now
+#TODO add settings: show scripts from rpmqa ?
 
 class DataThread(QThread):
     data_updated = Signal(list)

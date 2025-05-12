@@ -4,7 +4,7 @@
     "app": "WebApp",
     "ip": "192.168.0.10",
     "available": true,
-    "action": "Allocate",
+    "action": "Available",
     "reservation_start": "2025-05-11T08:30:00"
   },
   {
@@ -20,7 +20,7 @@
     "app": "RedisCache",
     "ip": "192.168.0.30",
     "available": true,
-    "action": "Allocate",
+    "action": "Available",
     "reservation_start": "2025-05-11T09:00:00"
   },
   {
@@ -44,7 +44,7 @@
     "app": "Redis-new",
     "ip": "192.168.0.41",
     "available": true,
-    "action": "Allocate",
+    "action": "Available",
     "reservation_start": ""
   }
 ]
