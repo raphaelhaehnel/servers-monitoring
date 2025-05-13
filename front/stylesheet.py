@@ -151,6 +151,11 @@ style = """
     
     QWidget#customTitleBar QPushButton:disabled {
     background-color: #388e3c;
+    padding: 1px;
+    }
+    
+    #titleLabel {
+    font-weight: bold;
     }
 }
 """

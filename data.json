@@ -6,7 +6,7 @@
     "env": "preprod",
     "available": false,
     "action": "Available",
-    "reservation_start": "2025-05-11T08:30:00"
+    "since": 5151
   },
   {
     "host": "db-primary",
@@ -15,7 +15,7 @@
     "env": "preprod",
     "available": false,
     "action": "Yossef Katri",
-    "reservation_start": "2025-05-11T07:15:00"
+    "since": 250
   },
   {
     "host": "cache-redis",
@@ -24,7 +24,7 @@
     "env": "preprod",
     "available": true,
     "action": "Available",
-    "reservation_start": "2025-05-11T09:00:00"
+    "since": 8888800
   },
   {
     "host": "worker-04",
@@ -33,7 +33,7 @@
     "env": "preprod",
     "available": "other",
     "action": "Operational",
-    "reservation_start": ""
+    "since": 0
   },
   {
     "host": "cache01",
@@ -42,7 +42,7 @@
     "env": "preprod",
     "available": "other",
     "action": "Don't touch",
-    "reservation_start": ""
+    "since": 0
   },
   {
     "host": "cache01",
@@ -51,6 +51,6 @@
     "env": "preprod",
     "available": true,
     "action": "Available",
-    "reservation_start": ""
+    "since": 0
   }
 ]

@@ -1,7 +1,4 @@
-from PySide6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QScrollArea, QLineEdit, QSizePolicy, QDialogButtonBox, QDialog, QInputDialog, QFrame
-)
+from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QLineEdit, QFrame)
 from PySide6.QtCore import Qt, QThread, Signal
 
 import sys, json, time
@@ -9,13 +6,11 @@ import sys, json, time
 from sympy import false
 
 from consts import ColumnWidth
-from stylesheet import style
+from front.stylesheet import style
+from utils import seconds_to_elapsed
 from widgets.customTitleBar import CustomTitleBar
 from widgets.listItem import ListItem
 
-
-# TODO the css is not applying on the customTitleBar
-# TODO add icons for close, minimize, settings like in Dorban
 
 # TODO add logs for each action that has been done
 # TODO add logged as viewer or admin
@@ -23,11 +18,7 @@ from widgets.listItem import ListItem
 # TODO modify the reservation by clicking on it. A window should show with:
 # TODO - name of the user
 # TODO - what does he want to check
-# TODO add icon
-# TODO login as admin
-# TODO make a background as card in listTile, and color it (green/red/normal)
 # TODO add checkboxes for: available, occupied, operational, type (gw, microservice, mid, heart, other, emda)
-# TODO from: it must be 'since' instead of absolute time
 # TODO In the lower right side, display when was the last update of the servers, and add a button for refresh now
 # TODO add settings: show scripts from rpmqa ?
 # TODO vertical alignment with the header
@@ -77,12 +68,9 @@ class MainWindow(QWidget):
         bold_font.setBold(True)
 
         shift = 20
-        for name, width in zip(
-                ("Host", "App", "IP", "Env", "Available", "Reservation", "From"),
-                (ColumnWidth.HOST + shift, ColumnWidth.APP + shift, ColumnWidth.IP + shift, ColumnWidth.ENV + shift,
-                 ColumnWidth.AVAILABLE + shift,
-                 ColumnWidth.RESERVATION + shift, ColumnWidth.FROM + shift)
-        ):
+        for name, width in zip(("Host", "App", "IP", "Env", "Available", "Reservation", "Since"), (
+                ColumnWidth.HOST + shift, ColumnWidth.APP + shift, ColumnWidth.IP + shift, ColumnWidth.ENV + shift,
+                ColumnWidth.AVAILABLE + shift, ColumnWidth.RESERVATION + shift, ColumnWidth.FROM + shift)):
             lbl = QLabel(name)
             lbl.setFont(bold_font)
             lbl.setFixedWidth(width)
@@ -117,16 +105,10 @@ class MainWindow(QWidget):
             card.setObjectName("cardFrame")
             card_layout = QVBoxLayout(card)
             card_layout.setContentsMargins(5, 2, 5, 2)
-            item = ListItem(
-                entry.get("host", ""),
-                entry.get("app", ""),
-                entry.get("ip", ""),
-                entry.get("env", ""),
-                entry.get("available", None),
-                entry.get("action", ""),
-                entry.get("reservation_start", ""),
-                self.is_admin
-            )
+
+            item = ListItem(entry.get("host", ""), entry.get("app", ""), entry.get("ip", ""), entry.get("env", ""),
+                            entry.get("available", None), entry.get("action", ""), seconds_to_elapsed(entry.get("since", "")),
+                            self.is_admin)
             card_layout.addWidget(item)
             self.scroll_layout.addWidget(card)
             self.items.append((card, item))

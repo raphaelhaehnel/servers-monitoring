@@ -1,4 +1,7 @@
 from PySide6.QtWidgets import QInputDialog, QLineEdit, QLabel, QDialogButtonBox, QVBoxLayout, QDialog
+import hashlib
+
+PASSWORD = '7518f5e98c2e72067abdfc5f382b9e8217e441e4270140889418847a33ab9c45'
 
 
 class LoginDialog(QDialog):
@@ -25,11 +28,11 @@ class LoginDialog(QDialog):
         role = self.role_input.text().strip().lower()
         if role == 'admin':
             pwd, ok = QInputDialog.getText(self, "Password", "Enter admin password:", QLineEdit.Password)
-            if ok and pwd == 'admin123':  # set your admin password here
+            hashed_input = hashlib.sha256(pwd.encode()).hexdigest()
+            if ok and hashed_input == PASSWORD:  # set your admin password here
                 self.is_admin = True
                 self.accept()
-            else:
-                QLabel("Incorrect password").show()
+
         else:
             self.is_admin = False
             self.accept()
