@@ -136,26 +136,38 @@ style = """
     }
     
     QWidget#customTitleBar {
-    background-color: #21252B;
-    color: white;
-    border-bottom: 1px solid #34495e;
+        background-color: #21252B;
+        color: white;
+        border-bottom: 1px solid #34495e;
     }
     
     #cardFrame {
-    background-color: #3c3f41;
-    border-radius: 15px;
-    padding: 1px;
-    margin: 1px;
-    border: 1px solid #555;
+        background-color: #3c3f41;
+        border-radius: 15px;
+        padding: 1px;
+        margin: 1px;
+        border: 1px solid #555;
     }
     
     QWidget#customTitleBar QPushButton:disabled {
-    background-color: #388e3c;
-    padding: 1px;
+        background-color: #388e3c;
+        padding: 1px;
     }
     
     #titleLabel {
-    font-weight: bold;
+        font-weight: bold;
     }
+    
+    #versionLabel, #copyrightName {
+        background-color: #282C34;
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 12px;
+        color: #555555;
+    }
+    
+    #footerFrame {
+        border-top: 1px solid #5c5c5c;
+    }
+    
 }
 """

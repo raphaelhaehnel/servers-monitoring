@@ -23,6 +23,8 @@ from widgets.listItem import ListItem
 # TODO add settings: show scripts from rpmqa ?
 # TODO vertical alignment with the header
 # TODO add 'about'
+# TODO add border for the title bar
+# TODO work on the bottom bar
 
 class DataThread(QThread):
     data_updated = Signal(list)
@@ -87,6 +89,24 @@ class MainWindow(QWidget):
         self.scroll.setWidget(self.scroll_content)
         main_layout.addWidget(self.scroll)
 
+        # Footer layout
+        self.footer_frame = QFrame()
+        self.footer_frame.setObjectName("footerFrame")
+        self.footer_layout = QHBoxLayout(self.footer_frame)
+        self.footer_layout.setContentsMargins(10, 5, 10, 5)
+        self.footer_layout.setAlignment(Qt.AlignRight)
+
+        self.version_label = QLabel("v1.0")
+        self.version_label.setObjectName("versionLabel")
+        self.copyright_name = QLabel("© Raphael Haehnel")
+        self.copyright_name.setObjectName("copyrightName")
+
+        self.footer_layout.addWidget(self.version_label)
+        self.footer_layout.addSpacing(20)
+        self.footer_layout.addWidget(self.copyright_name)
+
+        main_layout.addWidget(self.footer_frame)
+        
         self.thread = DataThread(json_path, interval=update_interval)
         self.thread.data_updated.connect(self.update_items)
         self.thread.start()
