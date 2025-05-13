@@ -163,10 +163,12 @@ style = """
         font-family: 'Segoe UI', sans-serif;
         font-size: 12px;
         color: #555555;
+        background-color: #333740;
     }
     
     #footerFrame {
         border-top: 1px solid #5c5c5c;
+        background-color: #333740;
     }
     
 }
