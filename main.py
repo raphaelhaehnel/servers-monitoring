@@ -25,6 +25,9 @@ from widgets.listItem import ListItem
 # TODO add 'about'
 # TODO add border for the title bar
 # TODO work on the bottom bar
+# TODO use P2P mechanism
+# TODO use priority list
+# TODO Add button 'Be master' (only for admin) and slave for the others
 
 class DataThread(QThread):
     data_updated = Signal(list)
