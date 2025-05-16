@@ -79,11 +79,9 @@ class LeaderElection:
                 if self.manual_master:
                     winner = self.self_id
                 else:
-                    # Gather active peers
-                    peers = set(self.discovery.peers.keys()) | {self.self_id}
-                    active = {pid for pid in peers
-                              if now - self.discovery.peers.get(pid, 0) <= self.config.get('heartbeat_timeout', 15)}
-                    candidates = [pid for pid in active]
+                    # Gather active peers (prune stopped nodes)
+                    active = self.discovery.get_active_peers() | {self.self_id}
+                    candidates = sorted(active)
                     if not candidates:
                         continue
                     # Compute priorities
