@@ -18,8 +18,6 @@ def load_config(path="config.json"):
 
 def get_self_id():
     try:
-        # POSIX-style
         return os.uname().nodename
     except AttributeError:
-        # Fallback for Windows
         return socket.gethostname()

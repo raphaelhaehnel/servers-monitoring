@@ -1,4 +1,9 @@
-import threading, time, json, socket, hashlib, random
+import threading
+import time
+import json
+import socket
+import hashlib
+import random
 from infrastructure.utils import setup_logger, get_self_id
 
 logger = setup_logger()
@@ -13,15 +18,12 @@ class LeaderElection:
         self.lock = threading.Lock()
         self.running = True
 
-        # Election ports
         self.elect_port = config.get('election_port', config['broadcast_port'] + 1)
-
-        # Socket for listening election broadcasts
+        # socket for listening election/master announcements
         self.listen_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.listen_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.listen_sock.bind(('', self.elect_port))
-
-        # Socket for sending election broadcasts
+        # socket for sending
         self.elect_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.elect_sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
@@ -37,7 +39,10 @@ class LeaderElection:
             data, _ = self.listen_sock.recvfrom(65536)
             try:
                 pkt = json.loads(data)
-                if pkt.get('type') == 'election':
+                if pkt.get('type') == 'master':
+                    with self.lock:
+                        self.current_master = pkt['id']
+                elif pkt.get('type') == 'election':
                     e = pkt['epoch']
                     self.seen_packets.setdefault(e, pkt)
             except Exception:
@@ -47,33 +52,30 @@ class LeaderElection:
         interval = self.config.get('heartbeat_interval', 5)
         while self.running:
             self.epoch += 1
-            # prepare election packet
-            cand = sorted(self.discovery.peers | {self.self_id})
-            pkt = {'type': 'election', 'peers': cand, 'epoch': self.epoch}
-
+            peers = sorted(self.discovery.get_active_peers() | {self.self_id})
+            pkt = {'type': 'election', 'peers': peers, 'epoch': self.epoch}
             # broadcast election packet
             self.elect_sock.sendto(json.dumps(pkt).encode(), ('<broadcast>', self.elect_port))
-
-            # wait window
             time.sleep(interval)
 
-            # pick packet (ours if none received)
+            # select packet to use
             chosen = self.seen_packets.pop(self.epoch, pkt)
-
-            # build priority map
+            # compute priorities
             cfg = {p['id']: p['priority'] for p in self.config['peers']}
             maxp = max(cfg.values(), default=0)
             default_p = maxp + 1
-
-            # score candidates
             scored = [(cfg.get(c, default_p), c) for c in chosen['peers']]
             min_pr = min(pr for pr, _ in scored)
             top = [c for pr, c in scored if pr == min_pr]
 
-            # deterministic randomness
+            # synchronized random choice
             blob = json.dumps(chosen, sort_keys=True)
             seed = int(hashlib.sha256(blob.encode()).hexdigest(), 16)
             winner = random.Random(seed).choice(top) if top else self.self_id
+
+            # announce master
+            announce = json.dumps({'type': 'master', 'id': winner}).encode()
+            self.elect_sock.sendto(announce, ('<broadcast>', self.elect_port))
 
             with self.lock:
                 self.current_master = self.self_id if self.manual_master else winner
