@@ -1,3 +1,4 @@
+import hashlib
 import threading
 import time
 import json
@@ -12,18 +13,21 @@ class LeaderElection:
         self.config = config
         self.discovery = discovery
         self.self_id = get_self_id()
-        self.peers = discovery.peers
         self.manual_master = manual_master
         self.current_master = None
         self.lock = threading.Lock()
         self.running = True
-        self.elect_port = config.get('broadcast_port', 50002)
 
-        # Synchronization between nodes
-        self.listen_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.listen_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.listen_sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.listen_sock.bind(('', self.elect_port))
+        self.elect_port = config.get('election_port', config['broadcast_port'] + 1)
+        # socket for listening and sending
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.bind(('', self.elect_port))
+
+        # Cooldown to prevent rapid re-election
+        self.cooldown = config.get('election_cooldown', 10)
+        self.last_election_time = 0
 
         threading.Thread(target=self._listen_loop, daemon=True).start()
 
@@ -33,65 +37,73 @@ class LeaderElection:
     def _listen_loop(self):
         while self.running:
             try:
-                data, addr = self.listen_sock.recvfrom(1024)
+                data, addr = self.sock.recvfrom(1024)
                 msg = json.loads(data)
-                if msg.get('type') == 'election':
-                    self._process_election(msg['id'])
-                elif msg.get('type') == 'master':
-                    self._update_master(msg['id'])
+                msg_type = msg.get('type')
+                master_id = msg.get('id')
+                if msg_type == 'master':
+                    with self.lock:
+                        # update only if new master has higher priority or within cooldown
+                        if (self.current_master != master_id and
+                            (time.time() - self.last_election_time) < self.cooldown or
+                            self._compare_priority(master_id, self.current_master)):
+                            self.current_master = master_id
+                            logger.info(f"Synchronized master update: {master_id}")
+                # ignore other message types
             except Exception as e:
-                logger.error(f"Error in election listener: {e}")
+                logger.error(f"Error in listen loop: {e}")
 
-    def _process_election(self, sender_id):
-        with self.lock:
-            # If the message comes from a higher-priority peer, update current master
-            if self.current_master is None or sender_id < self.current_master:
-                self.current_master = sender_id
-                logger.info(f"Received election message from {sender_id}, updating master.")
-                self._broadcast_master(sender_id)
+    def _compare_priority(self, a, b):
+        # Return True if a should win over b based on config priority or lex order
+        cfg = {p['id']: p['priority'] for p in self.config['peers']}
+        pa = cfg.get(a, float('inf'))
+        pb = cfg.get(b, float('inf'))
+        if pa != pb:
+            return pa < pb
+        # tie-break lexicographically
+        return a < b
 
     def _broadcast_master(self, master_id):
         msg = json.dumps({'type': 'master', 'id': master_id}).encode()
-        self.listen_sock.sendto(msg, ('<broadcast>', self.elect_port))
-
-    def _update_master(self, master_id):
-        with self.lock:
-            if master_id != self.current_master:
-                self.current_master = master_id
-                logger.info(f"Synchronized master update: {master_id}")
+        self.sock.sendto(msg, ('<broadcast>', self.elect_port))
 
     def _election_loop(self):
+        interval = self.config.get('heartbeat_interval', 5)
         while self.running:
+            time.sleep(interval)
+            now = time.time()
+            if now - self.last_election_time < self.cooldown:
+                continue
             with self.lock:
                 if self.manual_master:
-                    self.current_master = self.self_id
-                    self._broadcast_master(self.self_id)
-                    continue
-
-                # Collect active peers including self
-                candidates = sorted(list(set(self.discovery.peers.keys()) | {self.self_id}))
-                if not candidates:
-                    time.sleep(1)
-                    continue
-
-                # Synchronize election by broadcasting an election message
-                self._broadcast_master(self.self_id)
-
-                # Wait briefly to collect responses
-                time.sleep(1)
-
-                # Finalize master based on received updates
-                if self.current_master is None or self.current_master not in candidates:
-                    self.current_master = random.choice(candidates)
-                    logger.info(f"Elected master after sync: {self.current_master}")
-                    self._broadcast_master(self.current_master)
-
-            time.sleep(self.config.get('heartbeat_interval', 5))
+                    winner = self.self_id
+                else:
+                    peers = set(self.discovery.peers.keys()) | {self.self_id}
+                    active = {pid for pid in peers
+                              if now - self.discovery.peers.get(pid, 0) <= self.config.get('heartbeat_timeout', 15)}
+                    candidates = [pid for pid in active]
+                    if not candidates:
+                        continue
+                    # compute priorities
+                    cfg = {p['id']: p['priority'] for p in self.config['peers']}
+                    default_pr = max(cfg.values(), default=0) + 1
+                    scored = [(cfg.get(c, default_pr), c) for c in candidates]
+                    min_pr = min(pr for pr, _ in scored)
+                    top = [c for pr, c in scored if pr == min_pr]
+                    # synchronized random seed
+                    blob = json.dumps(sorted(candidates))
+                    seed = int(hashlib.sha256(blob.encode()).hexdigest(), 16)
+                    winner = random.Random(seed).choice(top)
+                # set and announce
+                self.current_master = winner
+                self.last_election_time = now
+                logger.info(f"Elected master after consensus: {winner}")
+                self._broadcast_master(winner)
 
     def resign(self):
         with self.lock:
             self.running = False
-            logger.info(f"{self.self_id} resigning mastership")
+            logger.info(f"{self.self_id} resigning")
 
     def get_master(self):
         with self.lock:
