@@ -19,7 +19,7 @@ class LeaderElection:
         self.running = True
 
         self.elect_port = config.get('election_port', config['broadcast_port'] + 1)
-        # socket for listening and sending
+        # Combined socket for listening and broadcasting
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -28,6 +28,9 @@ class LeaderElection:
         # Cooldown to prevent rapid re-election
         self.cooldown = config.get('election_cooldown', 10)
         self.last_election_time = 0
+
+        # Epoch counter for varying RNG seed
+        self.epoch = 0
 
         threading.Thread(target=self._listen_loop, daemon=True).start()
 
@@ -43,24 +46,21 @@ class LeaderElection:
                 master_id = msg.get('id')
                 if msg_type == 'master':
                     with self.lock:
-                        # update only if new master has higher priority or within cooldown
+                        # update only if within cooldown or better priority
                         if (self.current_master != master_id and
                             (time.time() - self.last_election_time) < self.cooldown or
                             self._compare_priority(master_id, self.current_master)):
                             self.current_master = master_id
                             logger.info(f"Synchronized master update: {master_id}")
-                # ignore other message types
             except Exception as e:
                 logger.error(f"Error in listen loop: {e}")
 
     def _compare_priority(self, a, b):
-        # Return True if a should win over b based on config priority or lex order
         cfg = {p['id']: p['priority'] for p in self.config['peers']}
         pa = cfg.get(a, float('inf'))
         pb = cfg.get(b, float('inf'))
         if pa != pb:
             return pa < pb
-        # tie-break lexicographically
         return a < b
 
     def _broadcast_master(self, master_id):
@@ -75,26 +75,29 @@ class LeaderElection:
             if now - self.last_election_time < self.cooldown:
                 continue
             with self.lock:
+                self.epoch += 1
                 if self.manual_master:
                     winner = self.self_id
                 else:
+                    # Gather active peers
                     peers = set(self.discovery.peers.keys()) | {self.self_id}
                     active = {pid for pid in peers
                               if now - self.discovery.peers.get(pid, 0) <= self.config.get('heartbeat_timeout', 15)}
                     candidates = [pid for pid in active]
                     if not candidates:
                         continue
-                    # compute priorities
+                    # Compute priorities
                     cfg = {p['id']: p['priority'] for p in self.config['peers']}
                     default_pr = max(cfg.values(), default=0) + 1
                     scored = [(cfg.get(c, default_pr), c) for c in candidates]
                     min_pr = min(pr for pr, _ in scored)
                     top = [c for pr, c in scored if pr == min_pr]
-                    # synchronized random seed
-                    blob = json.dumps(sorted(candidates))
+                    # synchronized random seed using epoch
+                    seed_blob = {'candidates': sorted(candidates), 'epoch': self.epoch}
+                    blob = json.dumps(seed_blob, sort_keys=True)
                     seed = int(hashlib.sha256(blob.encode()).hexdigest(), 16)
                     winner = random.Random(seed).choice(top)
-                # set and announce
+                # Set and announce
                 self.current_master = winner
                 self.last_election_time = now
                 logger.info(f"Elected master after consensus: {winner}")
