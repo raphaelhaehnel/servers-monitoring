@@ -1,9 +1,9 @@
-import hashlib
 import threading
-import time
-import json
-import socket
 import random
+import time
+import socket
+import json
+import hashlib
 from infrastructure.utils import setup_logger, get_self_id
 
 logger = setup_logger()
@@ -93,11 +93,17 @@ class LeaderElection:
                 logger.error(f"Error in listen loop: {e}")
 
     def _compare_priority(self, a, b):
+        # Treat None as lowest priority (no current master)
+        if b is None:
+            return True
+        if a is None:
+            return False
         cfg = {p['id']: p['priority'] for p in self.config['peers']}
         pa = cfg.get(a, float('inf'))
         pb = cfg.get(b, float('inf'))
         if pa != pb:
             return pa < pb
+        # tie-break lexicographically
         return a < b
 
     def _broadcast(self, msg):
@@ -114,8 +120,14 @@ class LeaderElection:
 
     def _election_loop(self):
         interval = self.config.get('heartbeat_interval', 5)
+        first_run = True
         while self.running:
-            time.sleep(interval)
+            if not first_run:
+                time.sleep(interval)
+            first_run = False
+            now = time.time()
+            if now - self.last_election_time < self.cooldown:
+                continue
             now = time.time()
             if now - self.last_election_time < self.cooldown:
                 continue
@@ -163,5 +175,3 @@ class LeaderElection:
     def get_master(self):
         with self.lock:
             return self.current_master
-
-
