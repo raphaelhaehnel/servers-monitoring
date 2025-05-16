@@ -103,9 +103,18 @@ class LeaderElection:
 
     def resign(self):
         with self.lock:
+            # broadcast leave so peers drop us immediately
+            try:
+                leave_msg = json.dumps({'type': 'leave', 'id': self.self_id}).encode()
+                self.sock.sendto(leave_msg, ('<broadcast>', self.elect_port))
+            except Exception:
+                pass
+            time.sleep(1)
             self.running = False
             logger.info(f"{self.self_id} resigning")
 
     def get_master(self):
         with self.lock:
             return self.current_master
+
+
