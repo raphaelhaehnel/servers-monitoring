@@ -18,6 +18,31 @@ class LeaderElection:
         self.lock = threading.Lock()
         self.running = True
 
+        # track peers that explicitly left
+        self.left_peers = set()
+
+        # election socket bound to election_port
+        self.elect_port = config.get('election_port', config['broadcast_port'] + 1)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.bind(('', self.elect_port))
+
+        # cooldown to prevent flapping
+        self.cooldown = config.get('election_cooldown', 10)
+        self.last_election_time = 0
+
+        # epoch counter for varying RNG seed
+        self.epoch = 0
+
+        self.config = config
+        self.discovery = discovery
+        self.self_id = get_self_id()
+        self.manual_master = manual_master
+        self.current_master = None
+        self.lock = threading.Lock()
+        self.running = True
+
         # election socket bound to election_port
         self.elect_port = config.get('election_port', config['broadcast_port'] + 1)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -138,4 +163,5 @@ class LeaderElection:
     def get_master(self):
         with self.lock:
             return self.current_master
+
 
