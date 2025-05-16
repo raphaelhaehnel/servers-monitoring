@@ -8,6 +8,7 @@
   "ssh_user": "monitor",
   "ssh_key_path": "~/.ssh/id_rsa",
   "broadcast_port": 50000,
+  "election_port": 55000,
   "tcp_port": 60000,
   "heartbeat_interval": 5,
   "heartbeat_timeout": 15
