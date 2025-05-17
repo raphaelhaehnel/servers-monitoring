@@ -1,5 +1,8 @@
 import signal
 import argparse
+
+from front_launcher import launch_front
+from infrastructure.interface import start_control_server
 from infrastructure.utils import load_config, get_self_id, setup_logger
 from discovery import Discovery
 from election import LeaderElection
@@ -23,6 +26,10 @@ if __name__ == '__main__':
     # Leader election
     election = LeaderElection(config, disc, manual_master=args.manual_master)
     election.start()
+    control_srv = start_control_server(election, port=8000)
+
+    # Launch the Qt UI
+    launch_front()
 
     # Start server (master)
     server = MasterServer(election, config)

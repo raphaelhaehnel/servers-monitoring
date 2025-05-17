@@ -1,14 +1,13 @@
-from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QLineEdit, QFrame)
+import requests
+from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QLineEdit, QFrame
 from PySide6.QtCore import Qt, QThread, Signal
 
 import sys, json, time
-
-from sympy import false
-
 from consts import ColumnWidth
 from front.stylesheet import style
-from utils import seconds_to_elapsed
+from infrastructure.utils import seconds_to_elapsed
 from widgets.customTitleBar import CustomTitleBar
+from widgets.footerLayout import FooterLayout
 from widgets.listItem import ListItem
 
 
@@ -28,6 +27,22 @@ from widgets.listItem import ListItem
 # TODO use P2P mechanism
 # TODO use priority list
 # TODO Add button 'Be master' (only for admin) and slave for the others
+
+class MasterThread(QThread):
+    master_changed = Signal(str)
+    def run(self):
+        prev = None
+        while True:
+            try:
+                r = requests.get("http://localhost:8000/master", timeout=1)
+                if r.ok:
+                    m = r.text
+                    if m != prev:
+                        prev = m
+                        self.master_changed.emit(m)
+            except:
+                pass
+            time.sleep(2)
 
 class DataThread(QThread):
     data_updated = Signal(list)
@@ -53,7 +68,7 @@ class DataThread(QThread):
 
 
 class MainWindow(QWidget):
-    def __init__(self, json_path="data.json", update_interval=3, is_admin: bool = false):
+    def __init__(self, json_path=r"C:\Users\haehn\PycharmProjects\Playground\data.json", update_interval=3, is_admin: bool = False):
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint)
         main_layout = QVBoxLayout(self)
@@ -93,22 +108,12 @@ class MainWindow(QWidget):
         main_layout.addWidget(self.scroll)
 
         # Footer layout
-        self.footer_frame = QFrame()
-        self.footer_frame.setObjectName("footerFrame")
-        self.footer_layout = QHBoxLayout(self.footer_frame)
-        self.footer_layout.setContentsMargins(10, 5, 10, 5)
-        self.footer_layout.setAlignment(Qt.AlignRight)
-
-        self.version_label = QLabel("v1.0")
-        self.version_label.setObjectName("versionLabel")
-        self.copyright_name = QLabel("© Raphael Haehnel")
-        self.copyright_name.setObjectName("copyrightName")
-
-        self.footer_layout.addWidget(self.version_label)
-        self.footer_layout.addSpacing(20)
-        self.footer_layout.addWidget(self.copyright_name)
-
+        self.footer_frame = FooterLayout()
         main_layout.addWidget(self.footer_frame)
+
+        self.master_thread = MasterThread()
+        self.master_thread.master_changed.connect(self.footer_frame.btn_master.setText)
+        self.master_thread.start()
         
         self.thread = DataThread(json_path, interval=update_interval)
         self.thread.data_updated.connect(self.update_items)
