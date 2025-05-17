@@ -43,6 +43,8 @@ if __name__ == '__main__':
         election.resign()
         disc.stop()
         server.stop()
+        control_srv.shutdown()
+        control_srv.server_close()
         exit(0)
 
     signal.signal(signal.SIGINT, on_exit)
