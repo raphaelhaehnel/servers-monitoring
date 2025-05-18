@@ -2,7 +2,7 @@ import socket
 import threading
 import json
 import time
-from infrastructure.utils import load_config, get_self_id, setup_logger
+from infrastructure.utils import get_self_id, setup_logger
 
 logger = setup_logger()
 

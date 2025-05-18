@@ -2,10 +2,12 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
-from front.stylesheet import style
-from main import MainWindow
+from front.resources.resources_rc import qInitResources, qCleanupResources
+from front.resources.stylesheet import style
+from front.widgets.mainWindow import MainWindow
 
 def launch_front():
+    qInitResources()
     app = QApplication(sys.argv)
     app.setStyleSheet(style)
 

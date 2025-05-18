@@ -1,9 +1,8 @@
 import socket
 import threading
 import json
-from election import LeaderElection
-from ssh_manager import SSHManager
-from infrastructure.utils import load_config, setup_logger
+from infrastructure.ssh_manager import SSHManager
+from infrastructure.utils import setup_logger
 
 logger = setup_logger()
 

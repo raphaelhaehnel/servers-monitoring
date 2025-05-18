@@ -2,8 +2,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QMouseEvent, QIcon
 from PySide6.QtWidgets import QHBoxLayout, QWidget, QLabel, QPushButton, QDialog
 
-from widgets.loginDialog import LoginDialog
-import front.resources_rc
+from front.widgets.loginDialog import LoginDialog
 
 
 class CustomTitleBar(QWidget):

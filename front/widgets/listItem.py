@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePolicy
 
-from consts import ColumnWidth
+from front.consts import ColumnWidth
 
 
 class ListItem(QWidget):

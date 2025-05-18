@@ -12,7 +12,8 @@ def setup_logger():
     return logging.getLogger()
 
 
-def load_config(path="config.json"):
+def load_config(file="config.json"):
+    path = os.path.join(os.getcwd(), "infrastructure", file)
     with open(path) as f:
         return json.load(f)
 
