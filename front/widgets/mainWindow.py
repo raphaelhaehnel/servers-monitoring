@@ -26,18 +26,19 @@ from front.widgets.listItem import ListItem
 # TODO use P2P mechanism
 # TODO use priority list
 # TODO Add button 'Be master' (only for admin) and slave for the others
-
+# TODO fix the memory leak !
 
 class MainWindow(QWidget):
     def __init__(self, json_path=os.path.join(os.getcwd(), "data.json"), update_interval=3,
                  is_admin: bool = False):
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setObjectName("MainWindow")
         main_layout = QVBoxLayout(self)
 
         self.is_admin = is_admin
 
-        title_bar = CustomTitleBar(self)
+        title_bar = CustomTitleBar(self.is_admin, self)
         main_layout.addWidget(title_bar)
 
         self.search_bar = QLineEdit()

@@ -6,7 +6,7 @@ from front.widgets.loginDialog import LoginDialog
 
 
 class CustomTitleBar(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, is_admin=False, parent=None):
         super().__init__(parent)
         self.parent = parent
         self.setFixedHeight(40)
@@ -23,6 +23,8 @@ class CustomTitleBar(QWidget):
         self.login_button.setFixedSize(120, 35)
         self.login_button.clicked.connect(self.open_login_dialog)
         layout.addWidget(self.login_button)
+        if is_admin:
+            self.make_button_admin()
 
         self.settings_button = QPushButton()
         self.settings_button.setFixedSize(35, 35)
@@ -51,8 +53,11 @@ class CustomTitleBar(QWidget):
             self.parent.is_admin = dlg.is_admin
 
         if dlg.is_admin:
-            self.login_button.setText("Logged as admin")
-            self.login_button.setEnabled(False)  # TODO update the list immediately
+            self.make_button_admin()
+
+    def make_button_admin(self):
+        self.login_button.setText("Logged as admin")
+        self.login_button.setEnabled(False)  # TODO update the list immediately
 
     def minimize_window(self):
         self.parent.showMinimized()
