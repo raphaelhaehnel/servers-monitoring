@@ -4,9 +4,10 @@
     "app": "WebApp",
     "ip": "192.168.0.10",
     "env": "preprod",
-    "available": false,
+    "available": true,
     "action": "Available",
-    "since": 5151
+    "since": 0,
+    "comment": ""
   },
   {
     "host": "db-primary",
@@ -14,17 +15,19 @@
     "ip": "192.168.0.20",
     "env": "preprod",
     "available": false,
-    "action": "Yossef Katri",
-    "since": 250
+    "action": "Raphael",
+    "since": 1747950824,
+    "comment": ""
   },
   {
     "host": "cache-redis",
     "app": "RedisCache",
     "ip": "192.168.0.30",
     "env": "preprod",
-    "available": true,
-    "action": "Available",
-    "since": 8888800
+    "available": false,
+    "action": "Odelia",
+    "since": 1747950861,
+    "comment": ""
   },
   {
     "host": "worker-04",
@@ -33,7 +36,8 @@
     "env": "preprod",
     "available": "other",
     "action": "Operational",
-    "since": 0
+    "since": 1747941424,
+    "comment": ""
   },
   {
     "host": "cache01",
@@ -42,7 +46,8 @@
     "env": "preprod",
     "available": "other",
     "action": "Don't touch",
-    "since": 0
+    "since": 1747941424,
+    "comment": ""
   },
   {
     "host": "cache01",
@@ -51,6 +56,7 @@
     "env": "preprod",
     "available": true,
     "action": "Available",
-    "since": 0
+    "since": 1747941424,
+    "comment": ""
   }
 ]

@@ -4,10 +4,11 @@ from front.consts import ColumnWidth
 from front.widgets.freeServerDialog import FreeServerDialog
 from front.widgets.hoverButton import HoverButton
 from front.widgets.serverBookingDialog import ServerBookingDialog
+from front.utils import set_host_available, book_server, seconds_to_elapsed
 
 
 class ListItem(QWidget):
-    def __init__(self, host, app, ip, env, available, action_text, reservation_start, is_admin):
+    def __init__(self, host, app, ip, env, available, action_text, reservation_start, is_admin, data):
         super().__init__()
         self.host = host
         self.app = app
@@ -16,6 +17,7 @@ class ListItem(QWidget):
         self.available = available
         self.reservation_start = reservation_start
         self.action_text = action_text
+        self.data = data
 
         layout = QHBoxLayout()
         layout.setSpacing(10)
@@ -31,7 +33,7 @@ class ListItem(QWidget):
             hover_text = "Book it!"
         self.action_button = HoverButton(action_text, hover_text, parent=self)
         self.action_button.setEnabled(is_admin)
-        self.start_time_label = QLabel(reservation_start)
+        self.start_time_label = QLabel(seconds_to_elapsed(reservation_start) if reservation_start != 0 else "0")
 
         if not available:
             self.action_button.clicked.connect(self.open_free_dialog)
@@ -69,24 +71,47 @@ class ListItem(QWidget):
                 q in self.ip.lower() or
                 q in self.env.lower() or
                 q in str(self.available).lower() or
-                q in self.reservation_start.lower() or
+                q in str(self.reservation_start).lower() or
                 q in self.action_text.lower()
         )
 
     def open_free_dialog(self):
+        main_window = self.window()
+        if hasattr(main_window, 'data_listener_thread'):
+            main_window.data_listener_thread.pause()
+
         dialog = FreeServerDialog(self.host)
         if dialog.exec():
             print("User confirmed to free the server.")
-            self.available_label.setText("True")
-            #TODO write to json
+            set_host_available(self.data, self.host)
+
         else:
             print("User cancelled the action.")
 
+        if hasattr(main_window, 'refresh_now'):
+            main_window.refresh_now()
+
+        # after dialog, resume updates
+        if hasattr(main_window, 'data_listener_thread'):
+            main_window.data_listener_thread.resume()
+
     def open_booking_dialog(self):
+        main_window = self.window()
+        if hasattr(main_window, 'data_listener_thread'):
+            main_window.data_listener_thread.pause()
+
         dialog = ServerBookingDialog(self.host)
         if dialog.exec():
-            data = dialog.booking_data()
-            self.action_button.setDefaultText(data["user"])
-            #TODO write to json
+            print("User booked server")
+            booking_data = dialog.booking_data()
+            book_server(self.data, booking_data.host_name, booking_data.user)
+
         else:
             print("Booking cancelled")
+
+        if hasattr(main_window, 'refresh_now'):
+            main_window.refresh_now()
+
+        # after dialog, resume updates
+        if hasattr(main_window, 'data_listener_thread'):
+            main_window.data_listener_thread.resume()

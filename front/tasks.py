@@ -4,6 +4,9 @@ import time
 import requests
 from PySide6.QtCore import QThread, Signal
 
+from consts import DATA_PATH
+from models.serverData import ServerData
+
 
 class MasterThread(QThread):
     master_changed = Signal(str)
@@ -24,21 +27,30 @@ class MasterThread(QThread):
 class DataThread(QThread):
     data_updated = Signal(list)
 
-    def __init__(self, json_path, interval=5, parent=None):
+    def __init__(self, interval=5, parent=None):
         super().__init__(parent)
-        self.json_path = json_path
         self.interval = interval
         self.running = True
+        self.paused = False
 
     def run(self):
         while self.running:
-            try:
-                with open(self.json_path, 'r') as f:
-                    data = json.load(f)
-                self.data_updated.emit(data)
-            except Exception as e:
-                print(f"Failed to read JSON: {e}")
+            if not self.paused:
+                print("DataThread running")
+                try:
+                    with open(DATA_PATH, 'r') as f:
+                        data = json.load(f)
+                        server_list = [ServerData().from_json(entry) for entry in data]
+                    self.data_updated.emit(server_list)
+                except Exception as e:
+                    print(f"Failed to read JSON: {e}")
             time.sleep(self.interval)
+
+    def pause(self):
+        self.paused = True
+
+    def resume(self):
+        self.paused = False
 
     def stop(self):
         self.running = False

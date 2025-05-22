@@ -171,5 +171,93 @@ style = """
         background-color: #333740;
     }
     
+    #filterPanel {
+        background-color: #282C34;
+        border: 1px solid #3c3f41;
+        border-radius: 6px;
+    }
+    
+    QCheckBox {
+        color: #DDDDDD;
+        padding-right: 20px;
+    }
+
+    /* The round “box” */
+    QCheckBox::indicator {
+        width: 16px;
+        height: 16px;
+        border-radius: 6px;
+        border: 1px solid #5c5f61;        /* match your scrollbar handle */
+        background-color: #3c3f41;        /* same as your card bg */
+    }
+    
+    /* Hover state */
+    QCheckBox::indicator:hover {
+        border-color: #787b7d;            /* match scrollbar-hover */
+        background-color: #45494b;
+    }
+    
+    /* Checked state */
+    QCheckBox::indicator:checked, QCheckBox::indicator:checked:hover {
+        background-color: #388e3c;        /* accent green */
+        border: 1px solid #2e7d32;
+    }
+    
+    QComboBox {
+        background-color: #3c3f41;       /* same as list cards */
+        color: #DDDDDD;                  /* light text */
+        border: 1px solid #5c5f61;       /* match scrollbar handle */
+        border-radius: 4px;
+        padding: 4px 30px 4px 8px;       /* space for arrow */
+        min-height: 24px;
+    }
+    
+    /* Hover state */
+    QComboBox:hover {
+        border-color: #787b7d;
+    }
+    
+    /* Focused / open state */
+    QComboBox:focus {
+        border-color: #888;              /* subtle highlight */
+    }
+    
+    /* The drop-down arrow area */
+    QComboBox::drop-down {
+        subcontrol-origin: padding;
+        subcontrol-position: top right;
+        width: 24px;
+        border-left: 1px solid #5c5f61;
+        background-color: transparent;
+    }
+    
+    /* The arrow itself */
+    QComboBox::down-arrow {
+        image: url(:icons/images/icons/cil-arrow-bottom.png);  /* replace with your icon path */
+        width: 12px;
+        height: 12px;
+    }
+    
+    /* Popup list view */
+    QComboBox QAbstractItemView {
+        background-color: #3c3f41;
+        border: 1px solid #5c5f61;
+        selection-background-color: #5c5f61;
+        selection-color: #FFFFFF;
+        color: #DDDDDD;
+        outline: none;
+    }
+    
+    /* Items hover in list */
+    QComboBox QAbstractItemView::item:hover {
+        background-color: #45494b;
+    }
+    
+    /* Disabled state */
+    QComboBox:disabled {
+        background-color: #2e2f31;
+        color: #555555;
+        border-color: #444444;
+    }
 }
 """

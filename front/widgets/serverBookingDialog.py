@@ -4,6 +4,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QFormLayout
 )
 
+from models.serverBookingData import ServerBookingData
+
+
 class ServerBookingDialog(QDialog):
     def __init__(self, server_name: str, parent=None):
         super().__init__(parent)
@@ -41,10 +44,6 @@ class ServerBookingDialog(QDialog):
         main_layout.addLayout(btn_layout)
         self.setLayout(main_layout)
 
-    def booking_data(self) -> dict:
+    def booking_data(self) -> ServerBookingData:
         """Return a dict with the entered data if accepted."""
-        return {
-            'server': self.server_name,
-            'user': self.user_edit.text(),
-            'comment': self.comment_edit.text()
-        }
+        return ServerBookingData(self.server_name, self.user_edit.text(), self.comment_edit.text())

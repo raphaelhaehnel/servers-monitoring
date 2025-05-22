@@ -1,15 +1,19 @@
-import os
+import copy
+import json
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QLineEdit, QFrame
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QLineEdit, QFrame, QCheckBox, \
+    QComboBox
 from PySide6.QtCore import Qt
 
+from consts import DATA_PATH
 from front.consts import ColumnWidth
 from front.tasks import MasterThread, DataThread
-from front.widgets.checkboxBoard import CheckboxBoard
-from infrastructure.utils import seconds_to_elapsed
+from front.widgets.filterControls import FilterControls
 from front.widgets.customTitleBar import CustomTitleBar
+from front.widgets.filterPanel import FilterPanel
 from front.widgets.footerLayout import FooterLayout
 from front.widgets.listItem import ListItem
+from models.serverData import ServerData
 
 
 # TODO add logs for each action that has been done
@@ -27,27 +31,25 @@ from front.widgets.listItem import ListItem
 # TODO use priority list
 # TODO Add button 'Be master' (only for admin) and slave for the others
 # TODO fix the memory leak !
+# TODO connect the filterPanel to the filtering mechanism
+
 
 class MainWindow(QWidget):
-    def __init__(self, json_path=os.path.join(os.getcwd(), "data.json"), update_interval=3,
-                 is_admin: bool = False):
+    def __init__(self, update_interval=3, is_admin: bool = False):
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setObjectName("MainWindow")
         main_layout = QVBoxLayout(self)
 
         self.is_admin = is_admin
+        self.previous_data = []
 
         title_bar = CustomTitleBar(self.is_admin, self)
         main_layout.addWidget(title_bar)
 
-        self.search_bar = QLineEdit()
-        self.search_bar.setPlaceholderText("Search...")
-        self.search_bar.textChanged.connect(self.filter_items)
-        main_layout.addWidget(self.search_bar)
-
-        checkbox_board = CheckboxBoard(self)
-        main_layout.addWidget(checkbox_board)
+        self.filter_panel = FilterPanel()
+        self.filter_panel.search_text_changed.connect(self.filter_items)
+        main_layout.addWidget(self.filter_panel)
 
         header_layout = QHBoxLayout()
         header_layout.setSpacing(8)
@@ -82,34 +84,52 @@ class MainWindow(QWidget):
         self.master_thread.master_changed.connect(self.footer_frame.btn_master.setText)
         self.master_thread.start()
 
-        self.thread = DataThread(json_path, interval=update_interval)
-        self.thread.data_updated.connect(self.update_items)
-        self.thread.start()
+        self.data_listener_thread = DataThread(interval=update_interval)
+        self.data_listener_thread.data_updated.connect(self.update_items)
+        self.data_listener_thread.start()
 
-    def update_items(self, data_list):
-        # remove every widget in the scroll_layout
+    def update_items(self, servers_list: list[ServerData]):
+        # Compare current and previous data using a JSON string dump for simplicity
+        current_data_str = json.dumps([s.to_dict() for s in servers_list], sort_keys=True)
+        previous_data_str = json.dumps([s.to_dict() for s in self.previous_data], sort_keys=True)
+
+        if current_data_str == previous_data_str:
+            return
+
+        print("A modification has been detected. Updating items.")
+        self.previous_data = servers_list
+
+        # Remove every widget in the scroll_layout
         while self.scroll_layout.count():
             w = self.scroll_layout.takeAt(0).widget()
             if w:
                 w.deleteLater()
         self.items.clear()
 
-        for entry in data_list:
+        for entry in servers_list:
             card = QFrame()
             card.setFrameShape(QFrame.StyledPanel)
             card.setObjectName("cardFrame")
             card_layout = QVBoxLayout(card)
             card_layout.setContentsMargins(5, 2, 5, 2)
 
-            item = ListItem(entry.get("host", ""), entry.get("app", ""), entry.get("ip", ""), entry.get("env", ""),
-                            entry.get("available", None), entry.get("action", ""),
-                            seconds_to_elapsed(entry.get("since", "")),
-                            self.is_admin)
+            item = ListItem(entry.host, entry.app, entry.ip, entry.env, entry.available, entry.action, entry.since,
+                            self.is_admin, copy.deepcopy(self.previous_data))
             card_layout.addWidget(item)
             self.scroll_layout.addWidget(card)
             self.items.append((card, item))
 
-        self.filter_items(self.search_bar.text())
+        self.filter_items(self.filter_panel.search_bar.text())
+
+    def refresh_now(self):
+        # load data immediately and repaint
+        try:
+            with open(DATA_PATH, 'r') as f:
+                data = json.load(f)
+                server_list = [ServerData().from_json(entry) for entry in data]
+            self.update_items(server_list)
+        except Exception as e:
+            print("Failed to refresh:", e)
 
     def filter_items(self, text):
         q = text.lower()
@@ -118,9 +138,9 @@ class MainWindow(QWidget):
 
     def closeEvent(self, event):
         # Stop background thread forcefully and immediately
-        if self.thread.isRunning():
-            self.thread.terminate()
-            self.thread.wait()
+        if self.data_listener_thread.isRunning():
+            self.data_listener_thread.terminate()
+            self.data_listener_thread.wait()
 
         # Proceed to close the window
         super().closeEvent(event)
