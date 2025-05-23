@@ -5,18 +5,19 @@ from front.widgets.freeServerDialog import FreeServerDialog
 from front.widgets.hoverButton import HoverButton
 from front.widgets.serverBookingDialog import ServerBookingDialog
 from front.utils import set_host_available, book_server, seconds_to_elapsed
+from models.filterState import FilterState
 
 
 class ListItem(QWidget):
     def __init__(self, host, app, ip, env, available, action_text, reservation_start, is_admin, data):
         super().__init__()
-        self.host = host
-        self.app = app
-        self.ip = ip
-        self.env = env
-        self.available = available
-        self.reservation_start = reservation_start
-        self.action_text = action_text
+        self.host: str = host
+        self.app: str = app
+        self.ip: str = ip
+        self.env: str = env
+        self.available: bool = available
+        self.reservation_start: int = reservation_start
+        self.action_text: str = action_text
         self.data = data
 
         layout = QHBoxLayout()
@@ -74,6 +75,33 @@ class ListItem(QWidget):
                 q in str(self.reservation_start).lower() or
                 q in self.action_text.lower()
         )
+
+    def matches_conditions(self, state: FilterState):
+        # 1) Availability filter
+        # If “Available” is checked, hide any non-available servers
+        if state is None:
+            return True
+
+        if state.available and not self.available:
+            return False
+        # If “Busy” is checked, hide any available servers
+        if state.busy and self.available:
+            return False
+        # If neither “Available” nor “Busy” is checked, we skip availability filtering entirely
+
+        # 2) Operational filter
+        # If “Operational” is checked, only show items whose action_text is exactly “operational”
+        if state.operational and self.action_text.lower() != "operational":
+            return False
+
+        # 3) Type filter
+        # If a specific type (not “All”) is selected, require it to appear in the app name
+        if state.type != "All":
+            if state.type.lower() not in self.app.lower():
+                return False
+
+        # Passed all active filters
+        return True
 
     def open_free_dialog(self):
         main_window = self.window()

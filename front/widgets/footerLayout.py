@@ -10,19 +10,23 @@ class FooterLayout(QFrame):
         self.setObjectName("footerFrame")
         self.footer_layout = QHBoxLayout(self)
         self.footer_layout.setContentsMargins(10, 5, 10, 5)
-        self.footer_layout.setAlignment(Qt.AlignRight)
+        self.footer_layout.setAlignment(Qt.AlignVCenter)
 
-        self.btn_master = QPushButton("Be Master")
+        self.btn_master = QPushButton("User role")
         self.btn_master.clicked.connect(self.on_be_master)
+        self.footer_layout.addWidget(self.btn_master)
+
+        # Stretch pushes the next widgets to the right
+        self.footer_layout.addStretch()
 
         self.version_label = QLabel("v1.0")
         self.version_label.setObjectName("versionLabel")
+        self.footer_layout.addWidget(self.version_label)
+
+        self.footer_layout.addSpacing(20)
+
         self.copyright_name = QLabel("© Raphael Haehnel")
         self.copyright_name.setObjectName("copyrightName")
-
-        self.footer_layout.addWidget(self.btn_master)
-        self.footer_layout.addWidget(self.version_label)
-        self.footer_layout.addSpacing(20)
         self.footer_layout.addWidget(self.copyright_name)
 
     def on_be_master(self):

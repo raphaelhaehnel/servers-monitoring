@@ -1,4 +1,4 @@
-style = """
+style = """    
     QWidget {
         background-color: #282C34;
         color: #DDDDDD;
@@ -98,11 +98,11 @@ style = """
     
     /* === Row background === */
     QWidget#availableTrue {
-        background-color: #2e4430; /* dark green */
+        background-color: #2e4430; /* dark green */ /*TODO this is not working*/
     }
     
     QWidget#availableFalse {
-        background-color: #442e2e; /* dark red */
+        background-color: #442e2e; /* dark red */ /*TODO this is not working*/
     }
     
     /* === Label color === */
@@ -226,7 +226,7 @@ style = """
     QComboBox::drop-down {
         subcontrol-origin: padding;
         subcontrol-position: top right;
-        width: 24px;
+        width: 20px;
         border-left: 1px solid #5c5f61;
         background-color: transparent;
     }

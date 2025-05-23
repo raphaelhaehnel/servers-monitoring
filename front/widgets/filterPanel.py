@@ -23,5 +23,5 @@ class FilterPanel(QFrame):
         self.search_bar.setStyleSheet("QLineEdit { padding: 5px; }")
         filter_layout.addWidget(self.search_bar)
 
-        filter_controls = FilterControls()
-        filter_layout.addLayout(filter_controls)
+        self.filter_controls = FilterControls()
+        filter_layout.addLayout(self.filter_controls)

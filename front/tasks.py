@@ -5,6 +5,7 @@ import requests
 from PySide6.QtCore import QThread, Signal
 
 from consts import DATA_PATH
+from infrastructure.utils import get_self_id
 from models.serverData import ServerData
 
 
@@ -19,7 +20,11 @@ class MasterThread(QThread):
                     m = r.text
                     if m != prev:
                         prev = m
-                        self.master_changed.emit(m)
+                        if prev == get_self_id():
+                            user_state = "Master"
+                        else:
+                            user_state = "Slave"
+                        self.master_changed.emit(user_state)
             except:
                 pass
             time.sleep(2)

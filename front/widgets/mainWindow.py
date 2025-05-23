@@ -13,26 +13,23 @@ from front.widgets.customTitleBar import CustomTitleBar
 from front.widgets.filterPanel import FilterPanel
 from front.widgets.footerLayout import FooterLayout
 from front.widgets.listItem import ListItem
+from models.filterState import FilterState
 from models.serverData import ServerData
 
 
 # TODO add logs for each action that has been done
 # TODO add logged as viewer or admin
 # TODO perform multiple threading to get all servers at once (10 by 10)
-# TODO modify the reservation by clicking on it. A window should show with:
-# TODO - name of the user
-# TODO - what does he want to check
 # TODO In the lower right side, display when was the last update of the servers, and add a button for refresh now
 # TODO add settings: show scripts from rpmqa ?
 # TODO add 'about'
-# TODO add border for the title bar
 # TODO work on the bottom bar
 # TODO use P2P mechanism
 # TODO use priority list
 # TODO Add button 'Be master' (only for admin) and slave for the others
 # TODO fix the memory leak !
-# TODO connect the filterPanel to the filtering mechanism
-
+# TODO add CSS for hovering the button master
+# TODO enable the master button only if admin + slave
 
 class MainWindow(QWidget):
     def __init__(self, update_interval=3, is_admin: bool = False):
@@ -49,7 +46,9 @@ class MainWindow(QWidget):
 
         self.filter_panel = FilterPanel()
         self.filter_panel.search_text_changed.connect(self.filter_items)
+        self.filter_panel.filter_controls.filters_changed.connect(self.filter_control_items)
         main_layout.addWidget(self.filter_panel)
+
 
         header_layout = QHBoxLayout()
         header_layout.setSpacing(8)
@@ -72,7 +71,7 @@ class MainWindow(QWidget):
         self.scroll_layout = QVBoxLayout(self.scroll_content)
         self.scroll_layout.setSpacing(10)
         self.scroll_layout.setAlignment(Qt.AlignTop)
-        self.items = []
+        self.items: list[tuple[QFrame, ListItem]] = []
         self.scroll.setWidget(self.scroll_content)
         main_layout.addWidget(self.scroll)
 
@@ -81,7 +80,7 @@ class MainWindow(QWidget):
         main_layout.addWidget(self.footer_frame)
 
         self.master_thread = MasterThread()
-        self.master_thread.master_changed.connect(self.footer_frame.btn_master.setText)
+        self.master_thread.master_changed.connect(self.update_master_button)
         self.master_thread.start()
 
         self.data_listener_thread = DataThread(interval=update_interval)
@@ -120,6 +119,7 @@ class MainWindow(QWidget):
             self.items.append((card, item))
 
         self.filter_items(self.filter_panel.search_bar.text())
+        self.filter_control_items(self.filter_panel.filter_controls.current_filters)
 
     def refresh_now(self):
         # load data immediately and repaint
@@ -134,7 +134,19 @@ class MainWindow(QWidget):
     def filter_items(self, text):
         q = text.lower()
         for card, item in self.items:
-            card.setVisible(item.matches(q))
+            card.setVisible(item.matches(q) and item.matches_conditions(self.filter_panel.filter_controls.current_filters))
+
+    def filter_control_items(self, state: FilterState):
+        for card, item in self.items:
+            card.setVisible(item.matches_conditions(state) and item.matches(self.filter_panel.search_bar.text().lower()))
+
+    def update_master_button(self, text):
+        self.footer_frame.btn_master.setText(text)
+        if text == "Master":
+            self.footer_frame.btn_master.setStyleSheet("background-color: #388e3c")
+        else:
+            self.footer_frame.btn_master.setStyleSheet("background-color: #d32f2f")
+
 
     def closeEvent(self, event):
         # Stop background thread forcefully and immediately

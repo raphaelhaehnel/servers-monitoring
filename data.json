@@ -14,9 +14,9 @@
     "app": "Database",
     "ip": "192.168.0.20",
     "env": "preprod",
-    "available": false,
-    "action": "Raphael",
-    "since": 1747950824,
+    "available": true,
+    "action": "Available",
+    "since": 0,
     "comment": ""
   },
   {
@@ -51,11 +51,11 @@
   },
   {
     "host": "cache01",
-    "app": "Redis-new",
+    "app": "Microservice",
     "ip": "192.168.0.41",
     "env": "preprod",
-    "available": true,
-    "action": "Available",
+    "available": false,
+    "action": "Raphael",
     "since": 1747941424,
     "comment": ""
   }
