@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePolicy
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSizePolicy
 
 from front.consts import ColumnWidth
 from front.widgets.freeServerDialog import FreeServerDialog

@@ -29,7 +29,8 @@ class FooterLayout(QFrame):
         self.copyright_name.setObjectName("copyrightName")
         self.footer_layout.addWidget(self.copyright_name)
 
-    def on_be_master(self):
+    @staticmethod
+    def on_be_master():
         # Calls backend’s POST endpoint overriding master role:
         try:
             r = requests.post("http://localhost:8000/master", json={"id": "<your-peer-id>"})

@@ -1,14 +1,12 @@
 import copy
 import json
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QLineEdit, QFrame, QCheckBox, \
-    QComboBox
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QFrame
 from PySide6.QtCore import Qt
 
 from consts import DATA_PATH
 from front.consts import ColumnWidth
 from front.tasks import MasterThread, DataThread
-from front.widgets.filterControls import FilterControls
 from front.widgets.customTitleBar import CustomTitleBar
 from front.widgets.filterPanel import FilterPanel
 from front.widgets.footerLayout import FooterLayout

@@ -1,6 +1,5 @@
 from PySide6.QtCore import Signal
-from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QCheckBox, QComboBox
+from PySide6.QtWidgets import QHBoxLayout, QCheckBox, QComboBox
 
 from models.filterState import FilterState
 
@@ -20,7 +19,7 @@ class FilterControls(QHBoxLayout):
             self.addWidget(cb)
 
         self.combo_type = QComboBox()
-        self.combo_type.addItems(["All", "Microservice", "GW", "Mid", "Heart", "Emda"])
+        self.combo_type.addItems(["All", "MC", "GW", "Mid", "Heart", "Emda"])
         self.combo_type.setFixedWidth(150)
         self.combo_type.currentTextChanged.connect(self._on_any_change)
         self.addWidget(self.combo_type)
