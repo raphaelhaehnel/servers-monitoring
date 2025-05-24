@@ -1,6 +1,7 @@
-class ServerBookingData:
+from dataclasses import dataclass
 
-    def __init__(self, host_name, user, comment):
-        self.host_name = host_name
-        self.user = user
-        self.comment = comment
+@dataclass
+class ServerBookingData:
+    host_name: str
+    user: str
+    comment: str
