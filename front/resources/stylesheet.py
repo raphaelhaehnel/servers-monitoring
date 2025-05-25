@@ -171,6 +171,12 @@ style = """
         background-color: #333740;
     }
     
+    #lastUpdateTime {
+        background-color: #282C34;
+        border-radius: 8px;
+        padding: 5px
+    }
+    
     #filterPanel {
         background-color: #282C34;
         border: 1px solid #3c3f41;

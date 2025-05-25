@@ -55,6 +55,7 @@ class CustomTitleBar(QWidget):
         if dlg.is_admin:
             self.make_button_admin()
 
+
     def make_button_admin(self):
         self.login_button.setText("Logged as admin")
         self.login_button.setEnabled(False)  # TODO update the list immediately

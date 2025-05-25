@@ -6,6 +6,7 @@ from front.widgets.hoverButton import HoverButton
 from front.widgets.serverBookingDialog import ServerBookingDialog
 from front.utils import set_host_available, book_server, seconds_to_elapsed
 from models.filterState import FilterState
+from models.serversData import ServersData
 
 
 class ListItem(QWidget):
@@ -18,7 +19,7 @@ class ListItem(QWidget):
         self.available: bool = available
         self.reservation_start: int = reservation_start
         self.action_text: str = action_text
-        self.data = data
+        self.data: ServersData = data
 
         layout = QHBoxLayout()
         layout.setSpacing(10)

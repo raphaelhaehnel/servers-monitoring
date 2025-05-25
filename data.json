@@ -1,62 +1,65 @@
-[
-  {
-    "host": "server-01",
-    "app": "Mid",
-    "ip": "192.168.0.10",
-    "env": "preprod",
-    "available": false,
-    "action": "Yossef",
-    "since": 1748160679,
-    "comment": ""
-  },
-  {
-    "host": "db-primary",
-    "app": "Database",
-    "ip": "192.168.0.20",
-    "env": "preprod",
-    "available": false,
-    "action": "Roni",
-    "since": 1748161095,
-    "comment": ""
-  },
-  {
-    "host": "cache-redis",
-    "app": "RedisCache",
-    "ip": "192.168.0.30",
-    "env": "preprod",
-    "available": true,
-    "action": "Available",
-    "since": 0,
-    "comment": ""
-  },
-  {
-    "host": "worker-04",
-    "app": "BackgroundJob",
-    "ip": "192.168.0.40",
-    "env": "preprod",
-    "available": "other",
-    "action": "Operational",
-    "since": 1747941424,
-    "comment": ""
-  },
-  {
-    "host": "cache01",
-    "app": "Redis-new",
-    "ip": "192.168.0.41",
-    "env": "preprod",
-    "available": "other",
-    "action": "Don't touch",
-    "since": 1747941424,
-    "comment": ""
-  },
-  {
-    "host": "cache01",
-    "app": "Microservice",
-    "ip": "192.168.0.41",
-    "env": "preprod",
-    "available": false,
-    "action": "Raphael",
-    "since": 1747941424,
-    "comment": ""
-  }
-]
+{
+  "lastUpdate": 1706515614,
+  "serversList": [
+    {
+      "host": "server-01",
+      "app": "Mid",
+      "ip": "192.168.0.10",
+      "env": "preprod",
+      "available": false,
+      "action": "Raphael",
+      "since": 1748178515,
+      "comment": ""
+    },
+    {
+      "host": "db-primary",
+      "app": "Database",
+      "ip": "192.168.0.20",
+      "env": "preprod",
+      "available": true,
+      "action": "Available",
+      "since": 0,
+      "comment": ""
+    },
+    {
+      "host": "cache-redis",
+      "app": "RedisCache",
+      "ip": "192.168.0.30",
+      "env": "preprod",
+      "available": true,
+      "action": "Available",
+      "since": 0,
+      "comment": ""
+    },
+    {
+      "host": "worker-04",
+      "app": "BackgroundJob",
+      "ip": "192.168.0.40",
+      "env": "preprod",
+      "available": "other",
+      "action": "Operational",
+      "since": 1747941424,
+      "comment": ""
+    },
+    {
+      "host": "cache01",
+      "app": "Redis-new",
+      "ip": "192.168.0.41",
+      "env": "preprod",
+      "available": "other",
+      "action": "Don't touch",
+      "since": 1747941424,
+      "comment": ""
+    },
+    {
+      "host": "cache01",
+      "app": "Microservice",
+      "ip": "192.168.0.41",
+      "env": "preprod",
+      "available": false,
+      "action": "Raphael",
+      "since": 1747941424,
+      "comment": ""
+    }
+  ]
+}

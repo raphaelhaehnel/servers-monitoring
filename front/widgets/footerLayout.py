@@ -16,6 +16,10 @@ class FooterLayout(QFrame):
         self.btn_master.clicked.connect(self.on_be_master)
         self.footer_layout.addWidget(self.btn_master)
 
+        self.label_last_update = QLabel("Not up-to-date")
+        self.label_last_update.setObjectName("lastUpdateTime")
+        self.footer_layout.addWidget(self.label_last_update)
+
         # Stretch pushes the next widgets to the right
         self.footer_layout.addStretch()
 

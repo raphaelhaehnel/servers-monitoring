@@ -6,7 +6,8 @@ from PySide6.QtCore import QThread, Signal
 
 from consts import DATA_PATH
 from infrastructure.utils import get_self_id
-from models.serverData import ServerData
+from models.serverElement import ServerElement
+from models.serversData import ServersData
 
 
 class MasterThread(QThread):
@@ -30,7 +31,7 @@ class MasterThread(QThread):
             time.sleep(2)
 
 class DataThread(QThread):
-    data_updated = Signal(list)
+    data_updated = Signal(object)
 
     def __init__(self, interval=5, parent=None):
         super().__init__(parent)
@@ -45,8 +46,8 @@ class DataThread(QThread):
                 try:
                     with open(DATA_PATH, 'r') as f:
                         data = json.load(f)
-                        server_list = [ServerData().from_json(entry) for entry in data]
-                    self.data_updated.emit(server_list)
+                        servers_data = ServersData().from_json(data)
+                    self.data_updated.emit(servers_data)
                 except Exception as e:
                     print(f"Failed to read JSON: {e}")
             time.sleep(self.interval)

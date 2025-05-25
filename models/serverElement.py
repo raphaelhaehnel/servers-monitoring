@@ -1,4 +1,4 @@
-class ServerData:
+class ServerElement:
     def __init__(self):
         self.host: str = ""
         self.app: str = ""

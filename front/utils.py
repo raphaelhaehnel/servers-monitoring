@@ -3,7 +3,8 @@ import time
 from datetime import timedelta
 
 from consts import DATA_PATH
-from models.serverData import ServerData
+from models.serverElement import ServerElement
+from models.serversData import ServersData
 
 
 def seconds_to_elapsed(seconds):
@@ -23,14 +24,14 @@ def seconds_to_elapsed(seconds):
 
     return "-".join(parts) if parts else "0"
 
-def set_host_available(data: list[ServerData], host_name):
+def set_host_available(data: ServersData, host_name):
     """
         Mark the given host as available in the JSON file at `path`.
         Updates the 'available' flag to True and sets 'since' to the current timestamp.
         """
     # Update matching entry
     updated = False
-    for entry in data:
+    for entry in data.servers_list:
         if entry.host == host_name:
             entry.available = True
             entry.since = 0
@@ -43,14 +44,14 @@ def set_host_available(data: list[ServerData], host_name):
 
     # Write back to file
     with open(DATA_PATH, 'w') as f:
-        json.dump([s.to_dict() for s in data], f, indent=2)
+        json.dump(data.to_dict(), f, indent=2)
 
     return True
 
-def book_server(data: list[ServerData], host_name, user_name):
+def book_server(data: ServersData, host_name, user_name):
     # Update matching entry
     updated = False
-    for entry in data:
+    for entry in data.servers_list:
         if entry.host == host_name:
             entry.available = False
             entry.since = int(time.time())
@@ -63,6 +64,6 @@ def book_server(data: list[ServerData], host_name, user_name):
 
     # Write back to file
     with open(DATA_PATH, 'w') as f:
-        json.dump([s.to_dict() for s in data], f, indent=2)
+        json.dump(data.to_dict(), f, indent=2)
 
     return True
