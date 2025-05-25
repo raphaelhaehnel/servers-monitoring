@@ -28,6 +28,9 @@ from models.serverData import ServerData
 # TODO fix the memory leak !
 # TODO add CSS for hovering the button master
 # TODO enable the master button only if admin + slave
+# TODO Add user-comment and server-comment
+# TODO the admin must be automatically the master
+# TODO add mechanism: slave send request to the admin to choose a server. Add a request list for the admin
 
 class MainWindow(QWidget):
     def __init__(self, update_interval=3, is_admin: bool = False):

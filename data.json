@@ -1,12 +1,12 @@
 [
   {
     "host": "server-01",
-    "app": "WebApp",
+    "app": "Mid",
     "ip": "192.168.0.10",
     "env": "preprod",
-    "available": true,
-    "action": "Available",
-    "since": 0,
+    "available": false,
+    "action": "Yossef",
+    "since": 1748160679,
     "comment": ""
   },
   {
@@ -14,9 +14,9 @@
     "app": "Database",
     "ip": "192.168.0.20",
     "env": "preprod",
-    "available": true,
-    "action": "Available",
-    "since": 0,
+    "available": false,
+    "action": "Roni",
+    "since": 1748161095,
     "comment": ""
   },
   {
@@ -24,9 +24,9 @@
     "app": "RedisCache",
     "ip": "192.168.0.30",
     "env": "preprod",
-    "available": false,
-    "action": "Odelia",
-    "since": 1747950861,
+    "available": true,
+    "action": "Available",
+    "since": 0,
     "comment": ""
   },
   {
