@@ -1,0 +1,25 @@
+import threading
+
+from models.clusterNode import ClusterNode
+
+
+class ClusterView:
+    def __init__(self):
+        self.nodes: list[ClusterNode] = []
+        self.lock = threading.Lock()
+
+    def add_or_update(self, nodeIP, role):
+        with self.lock:
+            for n in self.nodes:
+                if n.nodeIP == nodeIP:
+                    n.role = role
+                    return
+            self.nodes.append(ClusterNode(nodeIP, role))
+
+    def remove(self, nodeIP):
+        with self.lock:
+            self.nodes = [n for n in self.nodes if n.nodeIP != nodeIP]
+
+    def to_list(self):
+        with self.lock:
+            return [n.to_dict() for n in self.nodes]

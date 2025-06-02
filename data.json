@@ -6,9 +6,9 @@
       "app": "Mid",
       "ip": "192.168.0.10",
       "env": "preprod",
-      "available": false,
-      "action": "Raphael",
-      "since": 1748178515,
+      "available": true,
+      "action": "Available",
+      "since": 0,
       "comment": ""
     },
     {

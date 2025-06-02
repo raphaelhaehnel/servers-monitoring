@@ -1,11 +1,19 @@
+import threading
+import time
+
 from models.serverElement import ServerElement
 
 
 class ServersData:
-
     def __init__(self):
         self.last_update: int = 0
         self.servers_list: list[ServerElement] = []
+        self.lock = threading.Lock()
+
+    def update(self, servers_list):
+        with self.lock:
+            self.serversList = servers_list
+            self.lastUpdate = int(time.time())
 
     def from_json(self, data):
         self.last_update = data.get("lastUpdate", 0)
@@ -14,4 +22,6 @@ class ServersData:
         return self
 
     def to_dict(self):
-        return {"lastUpdate": self.last_update, "serversList": [s.to_dict() for s in self.servers_list]}
+        with self.lock:
+            return {"lastUpdate": self.lastUpdate,
+                    "serversList": [s.to_dict() for s in self.serversList]}

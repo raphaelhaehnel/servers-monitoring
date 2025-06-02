@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<InfrastructureConfig>
+    <UdpPort>8577</UdpPort>
+    <TcpPort>8677</TcpPort>
+    <HttpPort>8777</HttpPort>
+    <FetchInterval>5000</FetchInterval>
+    <HeartbeatInterval>5000</HeartbeatInterval>
+
+    <JoinNetworkInterval>1000</JoinNetworkInterval>
+    <JoinNetworkAttempts>2</JoinNetworkAttempts>
+</InfrastructureConfig>

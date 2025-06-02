@@ -256,4 +256,7 @@
     <file>images/icons/icon_restore.png</file>
     <file>images/icons/icon_settings.png</file>
   </qresource>
+  <qresource prefix="graphics">
+    <file>images/graphics/icon.png</file>
+  </qresource>
 </RCC>

@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QMouseEvent, QIcon
+from PySide6.QtGui import QMouseEvent, QIcon, QPixmap
 from PySide6.QtWidgets import QHBoxLayout, QWidget, QLabel, QPushButton, QDialog
 
 from front.widgets.loginDialog import LoginDialog
@@ -13,6 +13,11 @@ class CustomTitleBar(QWidget):
         self.setObjectName("customTitleBar")
         layout = QHBoxLayout(self)
         layout.setContentsMargins(10, 0, 10, 0)
+
+        # Add icon before title
+        self.icon_label = QLabel()
+        self.icon_label.setPixmap(QPixmap(":graphics/images/graphics/icon.png").scaled(42, 42, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        layout.addWidget(self.icon_label)
 
         self.title = QLabel("FacIT")
         self.title.setObjectName("titleLabel")
