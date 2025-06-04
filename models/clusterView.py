@@ -23,3 +23,9 @@ class ClusterView:
     def to_list(self):
         with self.lock:
             return [n.to_dict() for n in self.nodes]
+
+    def get_highest_ip(self):
+        with self.lock:
+            if not self.nodes:
+                return None
+            return max(self.nodes, key=lambda node: node.nodeIP)
