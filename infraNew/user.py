@@ -51,6 +51,7 @@ class User:
         # Initializing the different threads
         self.start()
 
+        #TODO if not received heartbeat for 3 * HEARTBEAT_INTERVAL, elect a new master
     def start(self):
         self.udp_listener_thread.start()
         self.http_server_thread.start()

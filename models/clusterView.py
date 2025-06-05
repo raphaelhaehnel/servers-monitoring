@@ -29,3 +29,7 @@ class ClusterView:
             if not self.nodes:
                 return None
             return max(self.nodes, key=lambda node: node.nodeIP)
+
+    def to_dict(self):
+        with self.lock:
+            return [n.to_dict() for n in self.nodes]

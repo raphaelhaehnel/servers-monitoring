@@ -25,3 +25,4 @@ class ServersData:
         with self.lock:
             return {"lastUpdate": self.lastUpdate,
                     "serversList": [s.to_dict() for s in self.serversList]}
+

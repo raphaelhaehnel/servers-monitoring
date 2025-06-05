@@ -15,3 +15,7 @@ class UserRequests:
     def to_list(self):
         with self.lock:
             return [r.to_dict() for r in self.requests]
+
+    def to_dict(self):
+        with self.lock:
+            return [r.to_dict() for r in self.requests]

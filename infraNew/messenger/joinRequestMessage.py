@@ -1,5 +1,3 @@
-import json
-
 from infraNew.messenger.generalMessage import GeneralMessage
 
 
