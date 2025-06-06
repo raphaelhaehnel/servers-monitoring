@@ -155,7 +155,7 @@ class User:
 
     def _handle_client(self, connection, address):
         while not self.stop_event.is_set():
-            data = connection.recv(4096)
+            data = connection.recv(4096) #TODO Handle the case when the client disconnect here. It don't have to throw an error!
             try:
                 msg = json.loads(data.decode())
                 message = MessageDeserializer().deserialize(msg)
@@ -168,6 +168,7 @@ class User:
             if message.__class__ == FetchStateMessage:
                 response = StateUpdateMessage(self.servers_data, self.cluster_view, self.user_requests)
                 connection.send(response.to_json().encode())
+                self.logger.info(f"Sent message of type {response.__class__.__name__}")
 
         connection.close()
 

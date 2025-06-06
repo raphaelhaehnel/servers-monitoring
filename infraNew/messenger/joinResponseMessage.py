@@ -12,10 +12,9 @@ class JoinResponseMessage(GeneralMessage):
         self.user_requests: UserRequests = user_requests
 
     def get_payload(self):
-        return {
-            "serversData": self.servers_data.to_dict(),
-            "clusterView": self.cluster_view.to_dict(),
-            "userRequests": self.user_requests.to_dict()}
+        return {"serversData": self.servers_data.to_dict(),
+                "clusterView": self.cluster_view.to_dict(),
+                "userRequests": self.user_requests.to_dict()}
 
     def to_json(self):
         return self._to_json("JoinResponse")
