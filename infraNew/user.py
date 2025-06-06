@@ -149,8 +149,8 @@ class User:
 
                 message = MessageDeserializer().deserialize(msg)
 
-                self.logger.info(f"Fetched message of type {message.__class__.__name__}")
-                if message.__class__ == StateUpdateMessage:
+                self.logger.info(f"Fetched message of type {message.get_name()}")
+                if isinstance(message, StateUpdateMessage):
                     self.servers_data = message.servers_data
                     self.cluster_view = message.cluster_view
                     self.user_requests = message.user_requests
@@ -166,7 +166,7 @@ class User:
     def _handle_client(self, connection, client_ip):
         while not self.stop_event.is_set():
             try:
-                data = connection.recv(4096) #TODO Handle the case when the client disconnect here. It don't have to throw an error!
+                data = connection.recv(4096)
                 msg = json.loads(data.decode())
                 message = MessageDeserializer().deserialize(msg)
 
@@ -180,14 +180,14 @@ class User:
 
             except Exception as e:
                 self.logger.error(f"Didn't succeed to handle message from the client: {e}")
-                connection.close()
                 continue
 
-            self.logger.info(f"Got message of type {message.__class__.__name__}")
-            if message.__class__ == FetchStateMessage:
+            self.logger.info(f"Got message of type {message.get_name()}")
+
+            if isinstance(message, FetchStateMessage):
                 response = StateUpdateMessage(self.servers_data, self.cluster_view, self.user_requests)
                 connection.send(response.to_json().encode())
-                self.logger.info(f"Sent message of type {response.__class__.__name__}")
+                self.logger.info(f"Sent message of type {response.get_name()}")
 
         connection.close()
         self.cluster_view.remove(client_ip)
@@ -231,7 +231,7 @@ class User:
     def _handle_udp(self, msg, src_ip):
         message = MessageDeserializer().deserialize(msg)
 
-        self.logger.info(f"Received UDP message {message.__class__.__name__} from {src_ip} !")
+        self.logger.info(f"Received UDP message {message.get_name()} from {src_ip} !")
 
         if isinstance(message, JoinRequestMessage) and self.role == Role.MASTER:
             self._reply_join(src_ip)

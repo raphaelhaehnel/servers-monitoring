@@ -17,3 +17,6 @@ class GeneralMessage:
 
     def _to_json(self, msg_type):
         return json.dumps({"Type": msg_type, "Payload": self.get_payload()})
+
+    def get_name(self):
+        return self.__class__.__name__
