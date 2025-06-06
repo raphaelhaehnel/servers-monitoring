@@ -53,6 +53,7 @@ class User:
 
         #TODO if not received heartbeat for 3 * HEARTBEAT_INTERVAL, elect a new master
         #TODO if a tcp socket is alive more than 60 seconds, kill the socket.
+
     def start(self):
         self.udp_listener_thread.start()
         self.http_server_thread.start()
@@ -123,10 +124,11 @@ class User:
             self.logger.info(f'Waiting for new clients...')
             connection, address = server.accept()
             connection.settimeout(CLIENT_TCP_TIMEOUT / 1000)
-            self.logger.info(f'A new client connected at address {address}')
-            thread = threading.Thread(target=self._handle_client, args=(connection, address), daemon=True)
+            src_ip = address[0]
+            self.logger.info(f'A new client connected at address {src_ip}')
+            thread = threading.Thread(target=self._handle_client, args=(connection, src_ip), daemon=True)
             self.active_client_threads.append(thread)
-            self.cluster_view.add_or_update(address, Role.SLAVE)
+            self.cluster_view.add_or_update(src_ip, Role.SLAVE)
             thread.start()
 
     def _tcp_client(self):
@@ -154,10 +156,11 @@ class User:
 
             client_socket.close()
 
-        except (ConnectionRefusedError, TimeoutError) as e:
+        except (ConnectionRefusedError, ConnectionResetError, TimeoutError) as e:
             self.logger.warning(f"Failed to fetch state from master '{self.master_ip}': {e}")
+            #TODO You also need to close the socket (only if there was ConnectionResetError or OSError)
 
-    def _handle_client(self, connection, address):
+    def _handle_client(self, connection, client_ip):
         while not self.stop_event.is_set():
             try:
                 data = connection.recv(4096) #TODO Handle the case when the client disconnect here. It don't have to throw an error!
@@ -165,11 +168,11 @@ class User:
                 message = MessageDeserializer().deserialize(msg)
 
             except (ConnectionResetError, OSError) as e:
-                self.logger.warning(f"Client {address} disconnected abruptly: {e}")
+                self.logger.warning(f"Client {client_ip} disconnected abruptly: {e}")
                 break
 
             except socket.timeout:
-                self.logger.warning(f"Timed out waiting for data from client {address}. Disconnecting.")
+                self.logger.warning(f"Timed out waiting for data from client {client_ip}. Disconnecting.")
                 break
 
             except Exception as e:
@@ -184,8 +187,8 @@ class User:
                 self.logger.info(f"Sent message of type {response.__class__.__name__}")
 
         connection.close()
-        self.cluster_view.remove(address)
-        self.logger.warning(f"Socket of client {address} has been closed.")
+        self.cluster_view.remove(client_ip)
+        self.logger.warning(f"Socket of client {client_ip} has been closed.")
 
 
     def _heartbeat_sender(self):
@@ -221,11 +224,10 @@ class User:
 
             show_waiting_log = True
             msg = json.loads(data.decode())
-            self._handle_udp(msg, addr)
+            self._handle_udp(msg, addr[0])
 
-    def _handle_udp(self, msg, addr):
+    def _handle_udp(self, msg, src_ip):
         message = MessageDeserializer().deserialize(msg)
-        src_ip = addr[0]
 
         self.logger.info(f"Received UDP message {message.__class__.__name__} from {src_ip} !")
 
@@ -252,7 +254,7 @@ class User:
 
             # If the user who leaved is the master
             if src_ip == self.master_ip:
-                self.master_ip = self.cluster_view.get_highest_ip()
+                self.master_ip = self.cluster_view.get_highest_ip().nodeIP
                 self.logger.info(f"The master {src_ip} disconnected. The new master is {self.master_ip}")
 
                 if self.master_ip == self.ip:
