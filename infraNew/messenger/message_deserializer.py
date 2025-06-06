@@ -7,6 +7,9 @@ from infraNew.messenger.joinRequestMessage import JoinRequestMessage
 from infraNew.messenger.joinResponseMessage import JoinResponseMessage
 from infraNew.messenger.leaveNotificationMessage import LeaveNotificationMessage
 from infraNew.messenger.stateUpdateMessage import StateUpdateMessage
+from models.clusterView import ClusterView
+from models.serversData import ServersData
+from models.userRequests import UserRequests
 
 
 class MessageDeserializer:
@@ -33,11 +36,15 @@ class MessageDeserializer:
             elif msg_type == "JoinRequest":
                 return JoinRequestMessage(payload["nodeIP"])
             elif msg_type == "JoinResponse":
-                return JoinResponseMessage(payload["serversData"], payload["clusterView"], payload["userRequests"])
+                return JoinResponseMessage(ServersData().from_json(payload["serversData"]),
+                                           ClusterView().from_json(payload["clusterView"]),
+                                           UserRequests().from_json(payload["userRequests"]))
             elif msg_type == "LeaveNotification":
                 return LeaveNotificationMessage(payload["nodeIP"])
             elif msg_type == "StateUpdate":
-                return StateUpdateMessage(payload["serversData"], payload["clusterView"], payload["userRequests"])
+                return StateUpdateMessage(ServersData().from_json(payload["serversData"]),
+                                          ClusterView().from_json(payload["clusterView"]),
+                                          UserRequests().from_json(payload["userRequests"]))
             else:
                 self.logger.error(f"Message type identified does not corresponds to any known type")
         except Exception as e:

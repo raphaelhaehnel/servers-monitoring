@@ -12,8 +12,8 @@ class ServersData:
 
     def update(self, servers_list):
         with self.lock:
-            self.serversList = servers_list
-            self.lastUpdate = int(time.time())
+            self.servers_list = servers_list
+            self.last_update = int(time.time())
 
     def from_json(self, data):
         self.last_update = data.get("lastUpdate", 0)
@@ -23,6 +23,6 @@ class ServersData:
 
     def to_dict(self):
         with self.lock:
-            return {"lastUpdate": self.lastUpdate,
-                    "serversList": [s.to_dict() for s in self.serversList]}
+            return {"lastUpdate": self.last_update,
+                    "serversList": [s.to_dict() for s in self.servers_list]}
 

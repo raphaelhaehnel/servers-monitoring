@@ -52,6 +52,7 @@ class User:
         self.start()
 
         #TODO if not received heartbeat for 3 * HEARTBEAT_INTERVAL, elect a new master
+        #TODO if a tcp socket is alive more than 60 seconds, kill the socket.
     def start(self):
         self.udp_listener_thread.start()
         self.http_server_thread.start()
@@ -192,12 +193,16 @@ class User:
         sock.bind(('', UDP_PORT))
         show_waiting_log = True
         while not self.stop_event.is_set():
+
             if show_waiting_log:
                 self.logger.info("Waiting for UDP message...")
+
             data, addr = sock.recvfrom(4096)
+
             if addr[0] == self.ip:
                 show_waiting_log = False
                 continue
+
             show_waiting_log = True
             msg = json.loads(data.decode())
             self._handle_udp(msg, addr)
@@ -219,6 +224,7 @@ class User:
             self.cluster_view: ClusterView = message.cluster_view
             self.user_requests: UserRequests = message.cluster_view
             self.last_master_heartbeat = time.time()
+            self.tcp_client_thread.start()
             self.logger.info(f"Master identified at address {src_ip} and acquired data successfully")
 
         elif message.__class__ == HeartBeatMessage:

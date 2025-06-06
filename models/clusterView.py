@@ -8,6 +8,10 @@ class ClusterView:
         self.nodes: list[ClusterNode] = []
         self.lock = threading.Lock()
 
+    def from_json(self, data):
+        self.nodes = [ClusterNode().from_json(entry) for entry in data]
+        return self
+
     def add_or_update(self, nodeIP, role):
         with self.lock:
             for n in self.nodes:
