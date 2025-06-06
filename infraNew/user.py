@@ -126,6 +126,7 @@ class User:
             self.logger.info(f'A new client connected at address {address}')
             thread = threading.Thread(target=self._handle_client, args=(connection, address), daemon=True)
             self.active_client_threads.append(thread)
+            self.cluster_view.add_or_update(address, Role.SLAVE)
             thread.start()
 
     def _tcp_client(self):
@@ -136,6 +137,8 @@ class User:
 
             while not self.stop_event.is_set():
                 client_socket.send(FetchStateMessage().to_json().encode())
+                self.logger.info("Sent message of type FetchStateMessage")
+
                 data = client_socket.recv(8192)
                 msg = json.loads(data.decode())
 
@@ -181,6 +184,7 @@ class User:
                 self.logger.info(f"Sent message of type {response.__class__.__name__}")
 
         connection.close()
+        self.cluster_view.remove(address)
         self.logger.warning(f"Socket of client {address} has been closed.")
 
 
@@ -225,25 +229,25 @@ class User:
 
         self.logger.info(f"Received UDP message {message.__class__.__name__} from {src_ip} !")
 
-        if message.__class__ == JoinRequestMessage and self.role == Role.MASTER:
+        if isinstance(message, JoinRequestMessage) and self.role == Role.MASTER:
             self._reply_join(src_ip)
             self.logger.info(f"Replied to JoinRequest from {src_ip}")
 
-        elif message.__class__ == JoinResponseMessage and self.role == Role.SLAVE:
+        elif isinstance(message, JoinResponseMessage) and self.role == Role.SLAVE:
             # Save the ip of the master, and update the data
             self.master_ip = src_ip
             self.servers_data: ServersData = message.servers_data
             self.cluster_view: ClusterView = message.cluster_view
-            self.user_requests: UserRequests = message.cluster_view
+            self.user_requests: UserRequests = message.user_requests
             self.last_master_heartbeat = time.time()
             self.tcp_client_thread.start()
             self.logger.info(f"Master identified at address {src_ip} and acquired data successfully")
 
-        elif message.__class__ == HeartBeatMessage:
+        elif isinstance(message, HeartBeatMessage):
             self.last_master_heartbeat = time.time()
             self.logger.info(f"Master still living!")
 
-        elif message.__class__ == LeaveNotificationMessage:
+        elif isinstance(message, LeaveNotificationMessage):
             self.cluster_view.remove(src_ip)
 
             # If the user who leaved is the master
@@ -258,8 +262,9 @@ class User:
             else:
                 self.logger.info(f"The slave {src_ip} disconnected")
 
-        elif message.__class__ == ForceMasterMessage:
+        elif isinstance(message, ForceMasterMessage):
             self.master_ip = src_ip
+            self.cluster_view.add_or_update(src_ip, Role.MASTER)
             self.logger.info(f"The slave {src_ip} forced master. Long live to the new master !")
 
 
