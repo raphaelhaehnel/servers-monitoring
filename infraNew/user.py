@@ -51,8 +51,10 @@ class User:
         # Initializing the different threads
         self.start()
 
+        #TODO do I need to open en close the UDP socket systematically ?
         #TODO if not received heartbeat for 3 * HEARTBEAT_INTERVAL, elect a new master
         #TODO if a tcp socket is alive more than 60 seconds, kill the socket.
+        #TODO Why did I got user at port 53673 ??
 
     def start(self):
         self.udp_listener_thread.start()
@@ -98,6 +100,7 @@ class User:
             def do_POST(self_inner):
                 if self_inner.path == '/promote':
                     # handle REST trigger for master change
+                    self.send_force_master()
                     self.start_master_tasks()
                     self.logger.info("Promoted to master via HTTP, congratulations!")
                     self_inner.send_response(200)
@@ -190,7 +193,6 @@ class User:
         self.cluster_view.remove(client_ip)
         self.logger.warning(f"Socket of client {client_ip} has been closed.")
 
-
     def _heartbeat_sender(self):
         self.logger.info(f"Thread <HEARTBEAT_SENDER> started!")
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -269,6 +271,8 @@ class User:
             self.cluster_view.add_or_update(src_ip, Role.MASTER)
             self.logger.info(f"The slave {src_ip} forced master. Long live to the new master !")
 
+            #TODO If I am the master, change my role, stop the master processes and start the slave processes
+
 
     def _reply_join(self, dest_ip):
         response = JoinResponseMessage(self.servers_data, self.cluster_view, self.user_requests)
@@ -294,6 +298,15 @@ class User:
         sock.sendto(request_message.to_json().encode(), ('<broadcast>', UDP_PORT))
         sock.close()
         self.logger.info("Sent JoinRequest broadcast")
+
+    def send_force_master(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+        msg = ForceMasterMessage(self.ip)
+        sock.sendto(msg.to_json().encode(), ('<broadcast>', UDP_PORT))
+        self.logger.info("Sent ForceMaster broadcast")
+
 
     def shutdown(self):
         self.stop_event.set()
