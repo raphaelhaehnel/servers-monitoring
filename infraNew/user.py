@@ -122,6 +122,7 @@ class User:
         while not self.stop_event.is_set():
             self.logger.info(f'Waiting for new clients...')
             connection, address = server.accept()
+            connection.settimeout(CLIENT_TCP_TIMEOUT / 1000)
             self.logger.info(f'A new client connected at address {address}')
             thread = threading.Thread(target=self._handle_client, args=(connection, address), daemon=True)
             self.active_client_threads.append(thread)
@@ -155,14 +156,23 @@ class User:
 
     def _handle_client(self, connection, address):
         while not self.stop_event.is_set():
-            data = connection.recv(4096) #TODO Handle the case when the client disconnect here. It don't have to throw an error!
             try:
+                data = connection.recv(4096) #TODO Handle the case when the client disconnect here. It don't have to throw an error!
                 msg = json.loads(data.decode())
                 message = MessageDeserializer().deserialize(msg)
+
+            except (ConnectionResetError, OSError) as e:
+                self.logger.warning(f"Client {address} disconnected abruptly: {e}")
+                break
+
+            except socket.timeout:
+                self.logger.warning(f"Timed out waiting for data from client {address}. Disconnecting.")
+                break
+
             except Exception as e:
                 self.logger.error(f"Didn't succeed to handle message from the client: {e}")
                 connection.close()
-                return
+                continue
 
             self.logger.info(f"Got message of type {message.__class__.__name__}")
             if message.__class__ == FetchStateMessage:
@@ -171,6 +181,7 @@ class User:
                 self.logger.info(f"Sent message of type {response.__class__.__name__}")
 
         connection.close()
+        self.logger.warning(f"Socket of client {address} has been closed.")
 
 
     def _heartbeat_sender(self):
@@ -265,7 +276,7 @@ class User:
             if self.master_ip:
                 return
 
-        self.logger.info("Didn't find a master connected. You've been upgraded to master!")
+        self.logger.info("No master found. You've been promoted to master!")
         self.master_ip = IpManager().get_own_ip()
         self.start_master_tasks(update_front=True)
 
@@ -301,5 +312,5 @@ if __name__ == "__main__":
     HEARTBEAT_INTERVAL = int(config.find('HeartbeatInterval').text)
     JOIN_NETWORK_INTERVAL = int(config.find('JoinNetworkInterval').text)
     JOIN_NETWORK_ATTEMPTS = int(config.find('JoinNetworkAttempts').text)
-
+    CLIENT_TCP_TIMEOUT = int(config.find('ClientTcpTimeout').text)
     user = User()

@@ -6,7 +6,7 @@
     <HttpPortFront>8778</HttpPortFront>
     <FetchInterval>5000</FetchInterval>
     <HeartbeatInterval>5000</HeartbeatInterval>
-
+    <ClientTcpTimeout>120000</ClientTcpTimeout>
     <JoinNetworkInterval>1000</JoinNetworkInterval>
     <JoinNetworkAttempts>2</JoinNetworkAttempts>
 </InfrastructureConfig>
