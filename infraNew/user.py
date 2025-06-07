@@ -53,7 +53,6 @@ class User:
 
         #TODO do I need to open en close the UDP socket systematically ?
         #TODO if not received heartbeat for 3 * HEARTBEAT_INTERVAL, elect a new master
-        #TODO if a tcp socket is alive more than 60 seconds, kill the socket.
         #TODO Why did I got user at port 53673 ??
 
     def start(self):
