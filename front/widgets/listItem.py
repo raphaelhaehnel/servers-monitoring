@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSizePolicy
 
-from front.consts import ColumnWidth
+from front.column_width import ColumnWidth
 from front.widgets.freeServerDialog import FreeServerDialog
 from front.widgets.hoverButton import HoverButton
 from front.widgets.serverBookingDialog import ServerBookingDialog

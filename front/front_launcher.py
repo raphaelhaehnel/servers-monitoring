@@ -15,3 +15,5 @@ def launch_front():
     window.resize(1000, 600)
     window.show()
     sys.exit(app.exec())
+
+launch_front()

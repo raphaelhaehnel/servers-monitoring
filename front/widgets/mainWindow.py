@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScroll
 from PySide6.QtCore import Qt
 
 from consts import DATA_PATH
-from front.consts import ColumnWidth
+from front.column_width import ColumnWidth
 from front.tasks import MasterThread, DataThread
 from front.widgets.customTitleBar import CustomTitleBar
 from front.widgets.filterPanel import FilterPanel

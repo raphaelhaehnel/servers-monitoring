@@ -34,6 +34,7 @@ class User:
         self.role: Role = Role.SLAVE
         self.master_ip: str = ""
         self.last_master_heartbeat: int = 0
+        self.last_save: int = 0
 
         # Data
         self.servers_data: ServersData = ServersData()
@@ -46,6 +47,7 @@ class User:
         self.tcp_server_thread: threading.Thread = threading.Thread(target=self._tcp_server, daemon=True)
         self.tcp_client_thread: threading.Thread = threading.Thread(target=self._tcp_client, daemon=True)
         self.http_server_thread: threading.Thread = threading.Thread(target=self._http_server, daemon=True)
+        self.ssh_polling_thread: threading.Thread = threading.Thread(target=self._ssh_sender, daemon=True)
         self.active_client_threads: list[threading.Thread] = []
 
         # Initializing the different threads
@@ -61,8 +63,7 @@ class User:
         # - the front gives the master update only
         # Use threading.Event() or queue.Queue()
 
-        #TODO create a variable in the Config for the save file
-        #TODO save to the file every minute (configurable) and when stopping the application
+        #TODO save to the file every minute (configurable) and when stopping the application: if now - last_save > SAVING_INTERVAL
 
     def start(self):
         self.udp_listener_thread.start()
@@ -81,10 +82,10 @@ class User:
         self.role = Role.MASTER
         if update_front:
             try:
-                requests.post(f"http://localhost:{str(HTTP_PORT_FRONT)}/promote", timeout=1)
-                self.logger.info(f"Sent PROMOTE request to update the front")
+                requests.post(f"http://localhost:{str(HTTP_PORT_FRONT)}/updateRole", data=f"master", timeout=1)
+                self.logger.info(f"Sent updateRole MASTER request to the front")
             except Exception as e:
-                self.logger.warning(f"Failed to send PROMOTE request to the front: {e}")
+                self.logger.warning(f"Failed to send updateRole MASTER request to the front: {e}")
 
         if self.tcp_client_thread.is_alive():
             self.tcp_client_thread.join(1)
@@ -98,6 +99,36 @@ class User:
             self.tcp_server_thread.start()
         else:
             self.logger.warning(f"Thread <TCP_SERVER> was still alive. This is not the right behavior...")
+
+        if not self.ssh_polling_thread.is_alive():
+            self.ssh_polling_thread.start()
+        else:
+            self.logger.warning(f"Thread <SSH_POLLING> was still alive. This is not the right behavior...")
+
+    def start_slave_tasks(self):
+        self.role = Role.SLAVE
+        try:
+            requests.post(f"http://localhost:{str(HTTP_PORT_FRONT)}/updateRole", data=f"slave", timeout=1)
+            self.logger.info(f"Sent updateRole SLAVE request to the front")
+        except Exception as e:
+            self.logger.warning(f"Failed to send updateRole SLAVE request to the front: {e}")
+
+        if self.heartbeat_sender_thread.is_alive():
+            self.heartbeat_sender_thread.join(1)
+            self.logger.info(f"Shutting down Thread <HEARTBEAT_SENDER>")
+
+        if self.tcp_server_thread.is_alive():
+            self.tcp_server_thread.join(1)
+            self.logger.info(f"Shutting down Thread <TCP_SERVER>")
+
+        if self.ssh_polling_thread.is_alive():
+            self.ssh_polling_thread.join(1)
+            self.logger.info(f"Shutting down Thread <SSH_POLLING>")
+
+        if not self.tcp_client_thread.is_alive():
+            self.tcp_client_thread.start()
+        else:
+            self.logger.warning(f"Thread <TCP_CLIENT> was still alive. This is not the right behavior...")
 
     def _http_server(self):
         class Handler(BaseHTTPRequestHandler):
@@ -269,7 +300,6 @@ class User:
 
                 if self.master_ip == self.ip:
                     self.start_master_tasks(update_front=True)
-
                     self.logger.info(f"You've been chose as the new master, congratulations!")
             else:
                 self.logger.info(f"The slave {src_ip} disconnected")
@@ -278,9 +308,7 @@ class User:
             self.master_ip = src_ip
             self.cluster_view.add_or_update(src_ip, Role.MASTER)
             self.logger.info(f"The slave {src_ip} forced master. Long live to the new master !")
-
-            #TODO If I am the master, change my role, stop the master processes and start the slave processes
-
+            self.start_slave_tasks()
 
     def _reply_join(self, dest_ip):
         response = JoinResponseMessage(self.servers_data, self.cluster_view, self.user_requests)
@@ -315,6 +343,11 @@ class User:
         sock.sendto(msg.to_json().encode(), ('<broadcast>', UDP_PORT))
         self.logger.info("Sent ForceMaster broadcast")
 
+    def _ssh_sender(self):
+        self.logger.info(f"Thread <SSH_SENDER> started!")
+        while not self.stop_event.is_set():
+            self.logger.info("SSH command sent!")
+            time.sleep(SERVER_POLLING_INTERVAL/1000)
 
     def shutdown(self):
         self.stop_event.set()
@@ -341,4 +374,7 @@ if __name__ == "__main__":
     JOIN_NETWORK_INTERVAL = int(config.find('JoinNetworkInterval').text)
     JOIN_NETWORK_ATTEMPTS = int(config.find('JoinNetworkAttempts').text)
     CLIENT_TCP_TIMEOUT = int(config.find('ClientTcpTimeout').text)
+    SAVING_NETWORK_DIRECTORY = config.find('SavingNetworkDirectory').text
+    SERVER_POLLING_INTERVAL = int(config.find('ServerPollingInterval').text)
+
     user = User()
