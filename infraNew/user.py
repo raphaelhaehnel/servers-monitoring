@@ -55,6 +55,15 @@ class User:
         #TODO if not received heartbeat for 3 * HEARTBEAT_INTERVAL, elect a new master
         #TODO Why did I got user at port 53673 ??
 
+        #TODO If you use HTTP, post the data instead of doing get and then respond (less traffic)
+        #TODO between back and front, use event-driven updates
+        # - the back gives the data and master update
+        # - the front gives the master update only
+        # Use threading.Event() or queue.Queue()
+
+        #TODO create a variable in the Config for the save file
+        #TODO save to the file every minute (configurable) and when stopping the application
+
     def start(self):
         self.udp_listener_thread.start()
         self.http_server_thread.start()
