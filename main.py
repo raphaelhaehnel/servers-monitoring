@@ -1,60 +1,30 @@
-import signal
-import argparse
+import sys
 
+from infrastructure.config_parser import ConfigParser
 from front.front_launcher import launch_front
-from infrastructure.interface import start_control_server
-from infrastructure.utils import load_config, get_self_id, setup_logger
-from infrastructure.discovery import Discovery
-from infrastructure.election import LeaderElection
-from infrastructure.server import MasterServer
-from infrastructure.client import PeerClient
-
-logger = setup_logger()
+from infrastructure.user import User
+from models.clusterView import ClusterView
+from models.serversData import ServersData
+from models.userRequests import UserRequests
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--manual-master', action='store_true', help='Force self as master')
-    args = parser.parse_args()
 
-    config = load_config()
-    config['self_id'] = get_self_id()
-
-    # Start discovery
-    disc = Discovery(config)
-    disc.start()
-
-    # Leader election
-    election = LeaderElection(config, disc, manual_master=args.manual_master)
-    election.start()
-    control_srv = start_control_server(election, port=8000)
+    # Initiate the shared data
+    servers_data: ServersData = ServersData()
+    cluster_view: ClusterView = ClusterView()
+    user_requests: UserRequests = UserRequests()
+    is_admin = True
+    is_master = False # Must always be false at the beginning
 
     # Launch the Qt UI
-    launch_front()
+    launch_front(servers_data, cluster_view, user_requests, is_admin, is_master)
 
-    # Start server (master)
-    server = MasterServer(election, config)
-    server.start()
-
-    # Peer client
-    client = PeerClient(election, config)
-
-    def on_exit(signum, frame):
-        logger.info("Shutting down...")
-        election.resign()
-        disc.stop()
-        server.stop()
-        control_srv.shutdown()
-        control_srv.server_close()
-        exit(0)
-
-    signal.signal(signal.SIGINT, on_exit)
-    signal.signal(signal.SIGTERM, on_exit)
-
-    # Keep running
     try:
-        import time
+        config = ConfigParser()
 
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        on_exit(None, None)
+    except Exception as e:
+        print(f"Failed to load configuration: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    user = User(config, servers_data, cluster_view, user_requests, is_master)
+    user.start()

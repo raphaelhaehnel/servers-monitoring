@@ -5,15 +5,16 @@ from datetime import datetime
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QFrame
 from PySide6.QtCore import Qt
 
-from consts import DATA_PATH
 from front.column_width import ColumnWidth
 from front.tasks import MasterThread, DataThread
 from front.widgets.customTitleBar import CustomTitleBar
 from front.widgets.filterPanel import FilterPanel
 from front.widgets.footerLayout import FooterLayout
 from front.widgets.listItem import ListItem
+from models.clusterView import ClusterView
 from models.filterState import FilterState
 from models.serversData import ServersData
+from models.userRequests import UserRequests
 
 
 # TODO add logs for each action that has been done
@@ -33,7 +34,7 @@ from models.serversData import ServersData
 # TODO add sort by 'since' time
 
 class MainWindow(QWidget):
-    def __init__(self, update_interval=3, is_admin: bool = False):
+    def __init__(self, servers_data: ServersData, cluster_view: ClusterView, user_requests: UserRequests, update_interval=3, is_admin: bool = False, is_master: bool = False):
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setObjectName("MainWindow")

@@ -1,6 +1,6 @@
 import json
 
-from infraNew.messenger.generalMessage import GeneralMessage
+from infrastructure.messages.generalMessage import GeneralMessage
 
 
 class ForceMasterMessage(GeneralMessage):

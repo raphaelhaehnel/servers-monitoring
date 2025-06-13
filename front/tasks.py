@@ -5,7 +5,7 @@ import requests
 from PySide6.QtCore import QThread, Signal
 
 from consts import DATA_PATH
-from infrastructure.utils import get_self_id
+from infrastructure.ip_manager import get_self_id
 from models.serverElement import ServerElement
 from models.serversData import ServersData
 

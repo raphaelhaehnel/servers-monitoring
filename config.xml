@@ -15,6 +15,7 @@
 
     <SavingNetworkDirectory>\\DESKTOP-53QC65G\sharingParty</SavingNetworkDirectory>
     <SavingInterval>120000</SavingInterval>
+<!--    <SavingInterval>2000</SavingInterval>-->
 
     <ServerPollingInterval>10000</ServerPollingInterval>
 </InfrastructureConfig>

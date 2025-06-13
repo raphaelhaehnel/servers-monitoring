@@ -1,12 +1,12 @@
 import logging
 
-from infraNew.messenger.fetchStateMessage import FetchStateMessage
-from infraNew.messenger.forceMasterMessage import ForceMasterMessage
-from infraNew.messenger.heartbeatMessage import HeartBeatMessage
-from infraNew.messenger.joinRequestMessage import JoinRequestMessage
-from infraNew.messenger.joinResponseMessage import JoinResponseMessage
-from infraNew.messenger.leaveNotificationMessage import LeaveNotificationMessage
-from infraNew.messenger.stateUpdateMessage import StateUpdateMessage
+from infrastructure.messages.fetchStateMessage import FetchStateMessage
+from infrastructure.messages.forceMasterMessage import ForceMasterMessage
+from infrastructure.messages.heartbeatMessage import HeartBeatMessage
+from infrastructure.messages.joinRequestMessage import JoinRequestMessage
+from infrastructure.messages.joinResponseMessage import JoinResponseMessage
+from infrastructure.messages.leaveNotificationMessage import LeaveNotificationMessage
+from infrastructure.messages.stateUpdateMessage import StateUpdateMessage
 from models.clusterView import ClusterView
 from models.serversData import ServersData
 from models.userRequests import UserRequests

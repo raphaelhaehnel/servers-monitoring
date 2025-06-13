@@ -1,4 +1,4 @@
-from infraNew.messenger.generalMessage import GeneralMessage
+from infrastructure.messages.generalMessage import GeneralMessage
 
 
 class JoinRequestMessage(GeneralMessage):

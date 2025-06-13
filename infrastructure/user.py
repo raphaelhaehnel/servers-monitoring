@@ -5,19 +5,19 @@ import threading
 import time
 from functools import partial
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
 
 import requests
 
-from infraNew.config_loader import get_config
-from infraNew.messenger.fetchStateMessage import FetchStateMessage
-from infraNew.messenger.forceMasterMessage import ForceMasterMessage
-from infraNew.messenger.heartbeatMessage import HeartBeatMessage
-from infraNew.messenger.joinRequestMessage import JoinRequestMessage
-from infraNew.messenger.joinResponseMessage import JoinResponseMessage
-from infraNew.messenger.leaveNotificationMessage import LeaveNotificationMessage
-from infraNew.messenger.message_deserializer import MessageDeserializer
-from infraNew.messenger.stateUpdateMessage import StateUpdateMessage
-from infraNew.utils import IpManager
+from infrastructure.messages.fetchStateMessage import FetchStateMessage
+from infrastructure.messages.forceMasterMessage import ForceMasterMessage
+from infrastructure.messages.heartbeatMessage import HeartBeatMessage
+from infrastructure.messages.joinRequestMessage import JoinRequestMessage
+from infrastructure.messages.joinResponseMessage import JoinResponseMessage
+from infrastructure.messages.leaveNotificationMessage import LeaveNotificationMessage
+from infrastructure.message_deserializer import MessageDeserializer
+from infrastructure.messages.stateUpdateMessage import StateUpdateMessage
+from infrastructure.ip_manager import IpManager
 from models.clusterView import ClusterView
 from models.serversData import ServersData
 from models.userRequests import UserRequests
@@ -27,8 +27,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(na
 
 
 class User:
-    def __init__(self):
+    def __init__(self, config, servers_data: ServersData, cluster_view: ClusterView, user_requests: UserRequests, is_master: bool):
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.config = config
         self.ip: str = IpManager().get_own_ip()
         self.stop_event: threading.Event = threading.Event()
         self.role: Role = Role.SLAVE
@@ -40,9 +41,9 @@ class User:
         self.udp_sender_socket = self.initialize_udp_sender_socket()
 
         # Data
-        self.servers_data: ServersData = ServersData()
-        self.cluster_view: ClusterView = ClusterView()
-        self.user_requests: UserRequests = UserRequests()
+        self.servers_data: ServersData = servers_data
+        self.cluster_view: ClusterView = cluster_view
+        self.user_requests: UserRequests = user_requests
 
         # Tasks
         self.heartbeat_sender_thread: threading.Thread = threading.Thread(target=self._heartbeat_sender, daemon=True)
@@ -51,18 +52,14 @@ class User:
         self.tcp_client_thread: threading.Thread = threading.Thread(target=self._tcp_client, daemon=True)
         self.http_server_thread: threading.Thread = threading.Thread(target=self._http_server, daemon=True)
         self.ssh_polling_thread: threading.Thread = threading.Thread(target=self._ssh_sender, daemon=True)
+        self.data_saver_thread: threading.Thread = threading.Thread(target=self._save_data_to_file, daemon=True)
         self.active_client_threads: list[threading.Thread] = []
-
-        # Initializing the different threads
-        self.start()
 
         # TODO If you use HTTP, post the data instead of doing get and then respond (less traffic)
         # TODO between back and front, use event-driven updates
         # - the back gives the data and master update
         # - the front gives the master update only
         # Use threading.Event() or queue.Queue()
-
-        # TODO save to the file every minute (configurable) and when stopping the application: if now - last_save > SAVING_INTERVAL
 
     @staticmethod
     def initialize_udp_sender_socket():
@@ -71,6 +68,8 @@ class User:
         return sock
 
     def start(self):
+        self.load_server_data()
+
         self.udp_listener_thread.start()
         self.http_server_thread.start()
 
@@ -83,11 +82,23 @@ class User:
         except KeyboardInterrupt:
             self.shutdown()
 
+    def load_server_data(self):
+        # Ensure the directory exists
+        save_dir = Path(self.config.SAVING_NETWORK_DIRECTORY)
+        filename = save_dir / "ServersData.json"
+
+        try:
+            with open(filename, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                self.servers_data = ServersData().from_json(data)
+        except Exception as e:
+            self.logger.error(f"Failed to load ServerData: {e}")
+
     def start_master_tasks(self, update_front=False):
         self.role = Role.MASTER
         if update_front:
             try:
-                requests.post(f"http://localhost:{str(HTTP_PORT_FRONT)}/updateRole", data=f"master", timeout=1)
+                requests.post(f"http://localhost:{str(self.config.HTTP_PORT_FRONT)}/updateRole", data=f"master", timeout=1)
                 self.logger.info(f"Sent updateRole MASTER request to the front")
             except Exception as e:
                 self.logger.warning(f"Failed to send updateRole MASTER request to the front: {e}")
@@ -110,10 +121,16 @@ class User:
         else:
             self.logger.warning(f"Thread <SSH_POLLING> was still alive. This is not the right behavior...")
 
+        if not self.data_saver_thread.is_alive():
+            self.data_saver_thread.start()
+        else:
+            self.logger.warning(f"Thread <DATA_SAVER_THREAD> was still alive. This is not the right behavior...")
+
+
     def start_slave_tasks(self):
         self.role = Role.SLAVE
         try:
-            requests.post(f"http://localhost:{str(HTTP_PORT_FRONT)}/updateRole", data=f"slave", timeout=1)
+            requests.post(f"http://localhost:{str(self.config.HTTP_PORT_FRONT)}/updateRole", data=f"slave", timeout=1)
             self.logger.info(f"Sent updateRole SLAVE request to the front")
         except Exception as e:
             self.logger.warning(f"Failed to send updateRole SLAVE request to the front: {e}")
@@ -129,6 +146,10 @@ class User:
         if self.ssh_polling_thread.is_alive():
             self.ssh_polling_thread.join(1)
             self.logger.info(f"Shutting down Thread <SSH_POLLING>")
+
+        if self.data_saver_thread.is_alive():
+            self.data_saver_thread.join(1)
+            self.logger.info(f"Shutting down Thread <DATA_SAVER_THREAD>")
 
         if not self.tcp_client_thread.is_alive():
             self.tcp_client_thread.start()
@@ -154,14 +175,14 @@ class User:
                     self_inner.end_headers()
 
         handler_with_context = partial(Handler, node_instance=self)
-        httpd = HTTPServer(('0.0.0.0', HTTP_PORT), handler_with_context)
+        httpd = HTTPServer(('0.0.0.0', self.config.HTTP_PORT), handler_with_context)
         httpd.serve_forever()
 
     def _tcp_server(self):
         self.logger.info(f"Thread <TCP_SERVER> started!")
 
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.bind(('', TCP_PORT))
+        server.bind(('', self.config.TCP_PORT))
         self.logger.info(f'TCP server started')
 
         # Listen to new clients
@@ -170,7 +191,7 @@ class User:
         while not self.stop_event.is_set():
             self.logger.info(f'Waiting for new clients...')
             connection, address = server.accept()
-            connection.settimeout(CLIENT_TCP_TIMEOUT / 1000)
+            connection.settimeout(self.config.CLIENT_TCP_TIMEOUT / 1000)
             src_ip = address[0]
             self.logger.info(f'A new client connected at address {src_ip}')
             thread = threading.Thread(target=self._handle_client, args=(connection, src_ip), daemon=True)
@@ -183,7 +204,7 @@ class User:
 
         try:
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client_socket.connect((self.master_ip, TCP_PORT))
+            client_socket.connect((self.master_ip, self.config.TCP_PORT))
             self.logger.info(f"Connected to master {self.master_ip}")
 
             while not self.stop_event.is_set():
@@ -205,7 +226,7 @@ class User:
                     self.cluster_view = message.cluster_view
                     self.user_requests = message.user_requests
 
-                time.sleep(FETCH_INTERVAL / 1000)
+                time.sleep(self.config.FETCH_INTERVAL / 1000)
 
             client_socket.close()
 
@@ -222,7 +243,6 @@ class User:
                     self.logger.info("TCP client socket closed.")
                 except Exception:
                     pass
-
 
     def _handle_client(self, connection, client_ip):
         while not self.stop_event.is_set():
@@ -260,8 +280,8 @@ class User:
         while not self.stop_event.is_set():
             self.logger.info("Sending heartbeat broadcast")
             msg = HeartBeatMessage()
-            self.udp_sender_socket.sendto(msg.to_json().encode(), ('<broadcast>', UDP_PORT))
-            time.sleep(HEARTBEAT_INTERVAL / 1000)
+            self.udp_sender_socket.sendto(msg.to_json().encode(), ('<broadcast>', self.config.UDP_PORT))
+            time.sleep(self.config.HEARTBEAT_INTERVAL / 1000)
 
     def _udp_listener(self):
         """
@@ -271,8 +291,8 @@ class User:
         self.logger.info(f"Thread <UDP_LISTENER> started!")
         self.last_master_heartbeat = time.time()
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.settimeout(HEARTBEAT_RETRIES * HEARTBEAT_INTERVAL / 1000)
-        sock.bind(('', UDP_PORT))
+        sock.settimeout(self.config.HEARTBEAT_RETRIES * self.config.HEARTBEAT_INTERVAL / 1000)
+        sock.bind(('', self.config.UDP_PORT))
         show_waiting_log = True
 
         while not self.stop_event.is_set():
@@ -290,19 +310,18 @@ class User:
                 self._handle_udp(msg, addr[0])
 
             except socket.timeout:
-                # TODO Test this !
                 self.logger.warning(f"Timed out waiting for UDP messages. Didn't got Heartbeat from master. Reinitializing connection.")
                 self.reinitialize_connection()
 
     def _handle_udp(self, msg, src_ip):
         message = MessageDeserializer().deserialize(msg)
 
-        self.logger.info(f"Received UDP message {message.get_name()} from {src_ip} !")
+        self.logger.info(f"Received UDP message {message.get_name()} from {src_ip}")
 
         if self.role == Role.SLAVE:
             heartbeat_delay = time.time() - self.last_master_heartbeat
 
-            if heartbeat_delay > HEARTBEAT_RETRIES * HEARTBEAT_INTERVAL / 1000:
+            if heartbeat_delay > self.config.HEARTBEAT_RETRIES * self.config.HEARTBEAT_INTERVAL / 1000:
                 self.logger.warning(f"Timed out waiting for Heartbeat message from master. Reinitializing connection.")
                 self.reinitialize_connection()
 
@@ -359,13 +378,13 @@ class User:
     def _reply_join(self, dest_ip):
         response = JoinResponseMessage(self.servers_data, self.cluster_view, self.user_requests)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.sendto(response.to_json().encode(), (dest_ip, UDP_PORT))
+        sock.sendto(response.to_json().encode(), (dest_ip, self.config.UDP_PORT))
         sock.close()
 
     def _join_network(self):
-        for _ in range(JOIN_NETWORK_ATTEMPTS):
+        for _ in range(self.config.JOIN_NETWORK_ATTEMPTS):
             self._send_join_request()
-            time.sleep(JOIN_NETWORK_INTERVAL / 1000)
+            time.sleep(self.config.JOIN_NETWORK_INTERVAL / 1000)
             if self.master_ip:
                 return
 
@@ -375,19 +394,48 @@ class User:
 
     def _send_join_request(self):
         request_message = JoinRequestMessage(self.ip)
-        self.udp_sender_socket.sendto(request_message.to_json().encode(), ('<broadcast>', UDP_PORT))
+        self.udp_sender_socket.sendto(request_message.to_json().encode(), ('<broadcast>', self.config.UDP_PORT))
         self.logger.info("Sent JoinRequest broadcast")
 
     def send_force_master(self):
         msg = ForceMasterMessage(self.ip)
-        self.udp_sender_socket.sendto(msg.to_json().encode(), ('<broadcast>', UDP_PORT))
+        self.udp_sender_socket.sendto(msg.to_json().encode(), ('<broadcast>', self.config.UDP_PORT))
         self.logger.info("Sent ForceMaster broadcast")
 
     def _ssh_sender(self):
         self.logger.info(f"Thread <SSH_SENDER> started!")
         while not self.stop_event.is_set():
             self.logger.info("SSH command sent!")
-            time.sleep(SERVER_POLLING_INTERVAL / 1000)
+            self.servers_data.last_update = int(time.time())
+            time.sleep(self.config.SERVER_POLLING_INTERVAL / 1000)
+
+    def _save_data_to_file(self):
+        """
+        Periodically serialize `self.servers_data` to JSON files in
+        the directory specified by SAVING_NETWORK_DIRECTORY.
+        """
+        self.logger.info(f"Thread <SAVE_DATA_TO_FILE> started!")
+
+        # Ensure the directory exists
+        save_dir = Path(self.config.SAVING_NETWORK_DIRECTORY)
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+        while not self.stop_event.is_set():
+            time.sleep(self.config.SAVING_INTERVAL / 1000)
+
+            filename = save_dir / "ServersData.json"
+            try:
+                data = self.servers_data.to_dict()
+            except Exception as e:
+                self.logger.error(f"Failed to serialize servers_data: {e}")
+                continue
+
+            try:
+                with open(filename, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                self.logger.info(f"Saved servers_data snapshot to {filename}")
+            except Exception as e:
+                self.logger.error(f"Error writing to {filename}: {e}")
 
     def shutdown(self):
         self._send_leave()
@@ -397,23 +445,6 @@ class User:
     def _send_leave(self):
         msg = LeaveNotificationMessage(self.ip)
         self.logger.info("Sending leaving message...")
-        self.udp_sender_socket.sendto(msg.to_json().encode(), ('<broadcast>', UDP_PORT))
+        self.udp_sender_socket.sendto(msg.to_json().encode(), ('<broadcast>', self.config.UDP_PORT))
         self.logger.info("Sent LeaveNotification")
 
-
-if __name__ == "__main__":
-    config = get_config()
-    UDP_PORT = int(config.find('UdpPort').text)
-    TCP_PORT = int(config.find('TcpPort').text)
-    HTTP_PORT = int(config.find('HttpPort').text)
-    HTTP_PORT_FRONT = int(config.find('HttpPortFront').text)
-    FETCH_INTERVAL = int(config.find('FetchInterval').text)
-    HEARTBEAT_INTERVAL = int(config.find('HeartbeatInterval').text)
-    HEARTBEAT_RETRIES = int(config.find('HeartbeatRetries').text)
-    JOIN_NETWORK_INTERVAL = int(config.find('JoinNetworkInterval').text)
-    JOIN_NETWORK_ATTEMPTS = int(config.find('JoinNetworkAttempts').text)
-    CLIENT_TCP_TIMEOUT = int(config.find('ClientTcpTimeout').text)
-    SAVING_NETWORK_DIRECTORY = config.find('SavingNetworkDirectory').text
-    SERVER_POLLING_INTERVAL = int(config.find('ServerPollingInterval').text)
-
-    user = User()

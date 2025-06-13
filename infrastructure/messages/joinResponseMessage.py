@@ -1,10 +1,10 @@
-from infraNew.messenger.generalMessage import GeneralMessage
+from infrastructure.messages.generalMessage import GeneralMessage
 from models.clusterView import ClusterView
 from models.serversData import ServersData
 from models.userRequests import UserRequests
 
 
-class StateUpdateMessage(GeneralMessage):
+class JoinResponseMessage(GeneralMessage):
 
     def __init__(self, servers_data, cluster_view, user_requests):
         self.servers_data: ServersData = servers_data
@@ -17,4 +17,5 @@ class StateUpdateMessage(GeneralMessage):
                 "userRequests": self.user_requests.to_dict()}
 
     def to_json(self):
-        return self._to_json("StateUpdate")
+        return self._to_json("JoinResponse")
+
