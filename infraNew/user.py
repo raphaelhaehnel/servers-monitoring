@@ -317,6 +317,7 @@ class User:
             self.user_requests: UserRequests = message.user_requests
             self.last_master_heartbeat = time.time()
             self.tcp_client_thread.start()
+            self.last_master_heartbeat = time.time()
             self.logger.info(f"Master identified at address {src_ip} and acquired data successfully")
 
         elif isinstance(message, HeartBeatMessage):
