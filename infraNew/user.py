@@ -269,6 +269,7 @@ class User:
         :return:
         """
         self.logger.info(f"Thread <UDP_LISTENER> started!")
+        self.last_master_heartbeat = time.time()
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.settimeout(HEARTBEAT_RETRIES * HEARTBEAT_INTERVAL / 1000)
         sock.bind(('', UDP_PORT))
@@ -317,7 +318,6 @@ class User:
             self.user_requests: UserRequests = message.user_requests
             self.last_master_heartbeat = time.time()
             self.tcp_client_thread.start()
-            self.last_master_heartbeat = time.time()
             self.logger.info(f"Master identified at address {src_ip} and acquired data successfully")
 
         elif isinstance(message, HeartBeatMessage):
