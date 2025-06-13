@@ -23,8 +23,8 @@ from models.serversData import ServersData
 from models.userRequests import UserRequests
 from models.role import Role
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s [%(levelname)s] %(name)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s - %(message)s')
+
 
 class User:
     def __init__(self):
@@ -35,6 +35,9 @@ class User:
         self.master_ip: str = ""
         self.last_master_heartbeat: int = 0
         self.last_save: int = 0
+
+        # Define UDP socket for sending
+        self.udp_sender_socket = self.initialize_udp_sender_socket()
 
         # Data
         self.servers_data: ServersData = ServersData()
@@ -53,17 +56,19 @@ class User:
         # Initializing the different threads
         self.start()
 
-        #TODO do I need to open en close the UDP socket systematically ?
-        #TODO if not received heartbeat for 3 * HEARTBEAT_INTERVAL, elect a new master
-        #TODO Why did I got user at port 53673 ??
-
-        #TODO If you use HTTP, post the data instead of doing get and then respond (less traffic)
-        #TODO between back and front, use event-driven updates
+        # TODO If you use HTTP, post the data instead of doing get and then respond (less traffic)
+        # TODO between back and front, use event-driven updates
         # - the back gives the data and master update
         # - the front gives the master update only
         # Use threading.Event() or queue.Queue()
 
-        #TODO save to the file every minute (configurable) and when stopping the application: if now - last_save > SAVING_INTERVAL
+        # TODO save to the file every minute (configurable) and when stopping the application: if now - last_save > SAVING_INTERVAL
+
+    @staticmethod
+    def initialize_udp_sender_socket():
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        return sock
 
     def start(self):
         self.udp_listener_thread.start()
@@ -174,6 +179,8 @@ class User:
             thread.start()
 
     def _tcp_client(self):
+        client_socket = None
+
         try:
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             client_socket.connect((self.master_ip, TCP_PORT))
@@ -184,11 +191,15 @@ class User:
                 self.logger.info("Sent message of type FetchStateMessage")
 
                 data = client_socket.recv(8192)
+
+                if not data:
+                    self.logger.warning("Master closed connection unexpectedly.")
+                    break
+
                 msg = json.loads(data.decode())
-
                 message = MessageDeserializer().deserialize(msg)
-
                 self.logger.info(f"Fetched message of type {message.get_name()}")
+
                 if isinstance(message, StateUpdateMessage):
                     self.servers_data = message.servers_data
                     self.cluster_view = message.cluster_view
@@ -198,9 +209,20 @@ class User:
 
             client_socket.close()
 
-        except (ConnectionRefusedError, ConnectionResetError, TimeoutError) as e:
-            self.logger.warning(f"Failed to fetch state from master '{self.master_ip}': {e}")
-            #TODO You also need to close the socket (only if there was ConnectionResetError or OSError)
+        except (ConnectionRefusedError, TimeoutError) as e:
+            self.logger.warning(f"Cannot connect to master {self.master_ip}: {e}")
+
+        except (ConnectionResetError, OSError) as e:
+            self.logger.warning(f"Connection lost from master {self.master_ip}: {e}")
+
+        finally:
+            if client_socket is not None:
+                try:
+                    client_socket.close()
+                    self.logger.info("TCP client socket closed.")
+                except Exception:
+                    pass
+
 
     def _handle_client(self, connection, client_ip):
         while not self.stop_event.is_set():
@@ -234,14 +256,12 @@ class User:
 
     def _heartbeat_sender(self):
         self.logger.info(f"Thread <HEARTBEAT_SENDER> started!")
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
         while not self.stop_event.is_set():
             self.logger.info("Sending heartbeat broadcast")
             msg = HeartBeatMessage()
-            sock.sendto(msg.to_json().encode(), ('<broadcast>', UDP_PORT))
-            time.sleep(HEARTBEAT_INTERVAL/1000)
+            self.udp_sender_socket.sendto(msg.to_json().encode(), ('<broadcast>', UDP_PORT))
+            time.sleep(HEARTBEAT_INTERVAL / 1000)
 
     def _udp_listener(self):
         """
@@ -250,27 +270,40 @@ class User:
         """
         self.logger.info(f"Thread <UDP_LISTENER> started!")
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(HEARTBEAT_RETRIES * HEARTBEAT_INTERVAL / 1000)
         sock.bind(('', UDP_PORT))
         show_waiting_log = True
-        while not self.stop_event.is_set():
 
+        while not self.stop_event.is_set():
             if show_waiting_log:
                 self.logger.info("Waiting for UDP message...")
 
-            data, addr = sock.recvfrom(4096)
+            try:
+                data, addr = sock.recvfrom(4096)
+                if addr[0] == self.ip:
+                    show_waiting_log = False
+                    continue
 
-            if addr[0] == self.ip:
-                show_waiting_log = False
-                continue
+                show_waiting_log = True
+                msg = json.loads(data.decode())
+                self._handle_udp(msg, addr[0])
 
-            show_waiting_log = True
-            msg = json.loads(data.decode())
-            self._handle_udp(msg, addr[0])
+            except socket.timeout:
+                # TODO Test this !
+                self.logger.warning(f"Timed out waiting for UDP messages. Didn't got Heartbeat from master. Reinitializing connection.")
+                self.reinitialize_connection()
 
     def _handle_udp(self, msg, src_ip):
         message = MessageDeserializer().deserialize(msg)
 
         self.logger.info(f"Received UDP message {message.get_name()} from {src_ip} !")
+
+        if self.role == Role.SLAVE:
+            heartbeat_delay = time.time() - self.last_master_heartbeat
+
+            if heartbeat_delay > HEARTBEAT_RETRIES * HEARTBEAT_INTERVAL / 1000:
+                self.logger.warning(f"Timed out waiting for Heartbeat message from master. Reinitializing connection.")
+                self.reinitialize_connection()
 
         if isinstance(message, JoinRequestMessage) and self.role == Role.MASTER:
             self._reply_join(src_ip)
@@ -310,6 +343,18 @@ class User:
             self.logger.info(f"The slave {src_ip} forced master. Long live to the new master !")
             self.start_slave_tasks()
 
+    def reinitialize_connection(self):
+        # Stop the TCP connection to the server
+        if self.tcp_client_thread.is_alive():
+            self.tcp_client_thread.join(1)
+        else:
+            self.logger.warning(f"Thread <TCP_CLIENT> was down. This is not the right behavior...")
+
+        self.master_ip: str = ""
+
+        # Try to connect to the master
+        threading.Thread(target=self._join_network, daemon=True).start()
+
     def _reply_join(self, dest_ip):
         response = JoinResponseMessage(self.servers_data, self.cluster_view, self.user_requests)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -319,7 +364,7 @@ class User:
     def _join_network(self):
         for _ in range(JOIN_NETWORK_ATTEMPTS):
             self._send_join_request()
-            time.sleep(JOIN_NETWORK_INTERVAL/1000)
+            time.sleep(JOIN_NETWORK_INTERVAL / 1000)
             if self.master_ip:
                 return
 
@@ -329,39 +374,31 @@ class User:
 
     def _send_join_request(self):
         request_message = JoinRequestMessage(self.ip)
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.sendto(request_message.to_json().encode(), ('<broadcast>', UDP_PORT))
-        sock.close()
+        self.udp_sender_socket.sendto(request_message.to_json().encode(), ('<broadcast>', UDP_PORT))
         self.logger.info("Sent JoinRequest broadcast")
 
     def send_force_master(self):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
         msg = ForceMasterMessage(self.ip)
-        sock.sendto(msg.to_json().encode(), ('<broadcast>', UDP_PORT))
+        self.udp_sender_socket.sendto(msg.to_json().encode(), ('<broadcast>', UDP_PORT))
         self.logger.info("Sent ForceMaster broadcast")
 
     def _ssh_sender(self):
         self.logger.info(f"Thread <SSH_SENDER> started!")
         while not self.stop_event.is_set():
             self.logger.info("SSH command sent!")
-            time.sleep(SERVER_POLLING_INTERVAL/1000)
+            time.sleep(SERVER_POLLING_INTERVAL / 1000)
 
     def shutdown(self):
-        self.stop_event.set()
-        #TODO maybe use join() for all the alive threads ?
         self._send_leave()
+        self.udp_sender_socket.close()
+        self.stop_event.set()
 
     def _send_leave(self):
         msg = LeaveNotificationMessage(self.ip)
         self.logger.info("Sending leaving message...")
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.sendto(msg.to_json().encode(), ('<broadcast>', UDP_PORT))
-        sock.close()
+        self.udp_sender_socket.sendto(msg.to_json().encode(), ('<broadcast>', UDP_PORT))
         self.logger.info("Sent LeaveNotification")
+
 
 if __name__ == "__main__":
     config = get_config()
@@ -371,6 +408,7 @@ if __name__ == "__main__":
     HTTP_PORT_FRONT = int(config.find('HttpPortFront').text)
     FETCH_INTERVAL = int(config.find('FetchInterval').text)
     HEARTBEAT_INTERVAL = int(config.find('HeartbeatInterval').text)
+    HEARTBEAT_RETRIES = int(config.find('HeartbeatRetries').text)
     JOIN_NETWORK_INTERVAL = int(config.find('JoinNetworkInterval').text)
     JOIN_NETWORK_ATTEMPTS = int(config.find('JoinNetworkAttempts').text)
     CLIENT_TCP_TIMEOUT = int(config.find('ClientTcpTimeout').text)

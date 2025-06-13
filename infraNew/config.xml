@@ -5,13 +5,15 @@
     <HttpPort>8777</HttpPort>
     <HttpPortFront>8778</HttpPortFront>
     <FetchInterval>5000</FetchInterval>
-    <HeartbeatInterval>5000</HeartbeatInterval>
     <ClientTcpTimeout>120000</ClientTcpTimeout>
+
+    <HeartbeatInterval>5000</HeartbeatInterval>
+    <HeartbeatRetries>3</HeartbeatRetries>
 
     <JoinNetworkInterval>1000</JoinNetworkInterval>
     <JoinNetworkAttempts>2</JoinNetworkAttempts>
 
-    <SavingNetworkDirectory>C:\Users\haehn\PycharmProjects\Playground</SavingNetworkDirectory>
+    <SavingNetworkDirectory>\\DESKTOP-53QC65G\sharingParty</SavingNetworkDirectory>
     <SavingInterval>120000</SavingInterval>
 
     <ServerPollingInterval>10000</ServerPollingInterval>
