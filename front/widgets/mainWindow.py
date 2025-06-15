@@ -11,6 +11,10 @@ from front.widgets.customTitleBar import CustomTitleBar
 from front.widgets.filterPanel import FilterPanel
 from front.widgets.footerLayout import FooterLayout
 from front.widgets.listItem import ListItem
+from infrastructure.shared_models.shared_clusterView import SharedClusterView
+from infrastructure.shared_models.shared_isMaster import SharedIsMaster
+from infrastructure.shared_models.shared_serversData import SharedServersData
+from infrastructure.shared_models.shared_userRequests import SharedUserRequests
 from models.clusterView import ClusterView
 from models.filterState import FilterState
 from models.serversData import ServersData
@@ -34,7 +38,7 @@ from models.userRequests import UserRequests
 # TODO add sort by 'since' time
 
 class MainWindow(QWidget):
-    def __init__(self, servers_data: ServersData, cluster_view: ClusterView, user_requests: UserRequests, update_interval=3, is_admin: bool = False, is_master: bool = False):
+    def __init__(self, shared_servers: SharedServersData, shared_cluster: SharedClusterView, shared_requests: SharedUserRequests, shared_master: SharedIsMaster, is_admin: bool, update_interval=3):
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setObjectName("MainWindow")

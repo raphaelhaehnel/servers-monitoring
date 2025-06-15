@@ -18,6 +18,10 @@ from infrastructure.messages.leaveNotificationMessage import LeaveNotificationMe
 from infrastructure.message_deserializer import MessageDeserializer
 from infrastructure.messages.stateUpdateMessage import StateUpdateMessage
 from infrastructure.ip_manager import IpManager
+from infrastructure.shared_models.shared_clusterView import SharedClusterView
+from infrastructure.shared_models.shared_isMaster import SharedIsMaster
+from infrastructure.shared_models.shared_serversData import SharedServersData
+from infrastructure.shared_models.shared_userRequests import SharedUserRequests
 from models.clusterView import ClusterView
 from models.serversData import ServersData
 from models.userRequests import UserRequests
@@ -27,7 +31,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(na
 
 
 class User:
-    def __init__(self, config, servers_data: ServersData, cluster_view: ClusterView, user_requests: UserRequests, is_master: bool):
+    def __init__(self, config, shared_servers: SharedServersData, shared_cluster: SharedClusterView, shared_requests: SharedUserRequests, shared_master: SharedIsMaster):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
         self.ip: str = IpManager().get_own_ip()
