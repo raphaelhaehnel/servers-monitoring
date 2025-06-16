@@ -1,12 +1,12 @@
 import copy
 import json
+import time
 from datetime import datetime
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QFrame
 from PySide6.QtCore import Qt
 
 from front.column_width import ColumnWidth
-from front.tasks import MasterThread, DataThread
 from front.widgets.customTitleBar import CustomTitleBar
 from front.widgets.filterPanel import FilterPanel
 from front.widgets.footerLayout import FooterLayout
@@ -15,10 +15,8 @@ from infrastructure.shared_models.shared_clusterView import SharedClusterView
 from infrastructure.shared_models.shared_isMaster import SharedIsMaster
 from infrastructure.shared_models.shared_serversData import SharedServersData
 from infrastructure.shared_models.shared_userRequests import SharedUserRequests
-from models.clusterView import ClusterView
 from models.filterState import FilterState
 from models.serversData import ServersData
-from models.userRequests import UserRequests
 
 
 # TODO add logs for each action that has been done
@@ -28,12 +26,10 @@ from models.userRequests import UserRequests
 # TODO add settings: show scripts from rpmqa ?
 # TODO add 'about'
 # TODO work on the bottom bar
-# TODO Add button 'Be master' (only for admin) and slave for the others
-# TODO fix the memory leak !
 # TODO add CSS for hovering the button master
 # TODO enable the master button only if admin + slave
 # TODO Add user-comment and server-comment
-# TODO the admin must be automatically the master
+# TODO the admin must be automatically be the master
 # TODO add mechanism: slave send request to the admin to choose a server. Add a request list for the admin
 # TODO add sort by 'since' time
 
@@ -84,15 +80,18 @@ class MainWindow(QWidget):
         self.footer_frame = FooterLayout()
         main_layout.addWidget(self.footer_frame)
 
-        self.master_thread = MasterThread()
-        self.master_thread.master_changed.connect(self.update_master_button)
-        self.master_thread.start()
+        self.shared_servers = shared_servers
+        self.shared_servers.dataChanged.connect(self.update_items)
+        # When the servers data is being updated in the back, update also the front
 
-        self.data_listener_thread = DataThread(interval=update_interval)
-        self.data_listener_thread.data_updated.connect(self.update_items)
-        self.data_listener_thread.start()
+        self.shared_master = shared_master
+        self.shared_master.dataChanged.connect(self.update_master_button)
+        # When the master is being updated in the back, update also the front
 
-    def update_items(self, servers_data: ServersData):
+        print("Initialized the front")
+
+    def update_items(self):
+        servers_data = self.shared_servers.data
         readable_date = datetime.fromtimestamp(servers_data.last_update)
         formatted_date = readable_date.strftime("%Y-%m-%d %H:%M:%S")
         self.footer_frame.label_last_update.setText("Last update time: " + formatted_date)
@@ -106,7 +105,7 @@ class MainWindow(QWidget):
                 return
 
         print("A modification has been detected. Updating items.")
-        self.previous_data = servers_data
+        self.previous_data = servers_data.clone
 
         # Remove every widget in the scroll_layout
         while self.scroll_layout.count():
@@ -123,23 +122,13 @@ class MainWindow(QWidget):
             card_layout.setContentsMargins(5, 2, 5, 2)
 
             item = ListItem(entry.host, entry.app, entry.ip, entry.env, entry.available, entry.action, entry.since,
-                            self.is_admin, copy.deepcopy(self.previous_data))
+                            self.is_admin, self.previous_data)
             card_layout.addWidget(item)
             self.scroll_layout.addWidget(card)
             self.items.append((card, item))
 
         self.filter_items(self.filter_panel.search_bar.text())
         self.filter_control_items(self.filter_panel.filter_controls.current_filters)
-
-    def refresh_now(self):
-        # load data immediately and repaint
-        try:
-            with open(DATA_PATH, 'r') as f:
-                data = json.load(f)
-                data = ServersData().from_json(data)
-            self.update_items(data)
-        except Exception as e:
-            print("Failed to refresh:", e)
 
     def filter_items(self, text):
         q = text.lower()
@@ -152,9 +141,9 @@ class MainWindow(QWidget):
             card.setVisible(
                 item.matches_conditions(state) and item.matches(self.filter_panel.search_bar.text().lower()))
 
-    def update_master_button(self, text):
-        self.footer_frame.btn_master.setText(text)
-        if text == "Master":
+    def update_master_button(self):
+        self.footer_frame.btn_master.setText("Master" if self.shared_master.data else "Slave")
+        if self.shared_master.data:
             self.footer_frame.btn_master.setStyleSheet("background-color: #388e3c")
             self.footer_frame.btn_master.setEnabled(False)
         else:
@@ -163,9 +152,7 @@ class MainWindow(QWidget):
 
     def closeEvent(self, event):
         # Stop background thread forcefully and immediately
-        if self.data_listener_thread.isRunning():
-            self.data_listener_thread.terminate()
-            self.data_listener_thread.wait()
+        #TODO stop the whole application
 
         # Proceed to close the window
         super().closeEvent(event)

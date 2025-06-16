@@ -14,6 +14,7 @@ class SharedServersData(QObject):
         return self._data
 
     def _set_data(self, new):
+        print("Setting shared server data...")
         self._data = new
         self.dataChanged.emit()
 

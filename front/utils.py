@@ -2,8 +2,6 @@ import json
 import time
 from datetime import timedelta
 
-from consts import DATA_PATH
-from models.serverElement import ServerElement
 from models.serversData import ServersData
 
 
@@ -26,9 +24,9 @@ def seconds_to_elapsed(seconds):
 
 def set_host_available(data: ServersData, host_name):
     """
-        Mark the given host as available in the JSON file at `path`.
-        Updates the 'available' flag to True and sets 'since' to the current timestamp.
-        """
+    Mark the given host as available in the JSON file at `path`.
+    Updates the 'available' flag to True and sets 'since' to the current timestamp.
+    """
     # Update matching entry
     updated = False
     for entry in data.servers_list:
@@ -41,10 +39,6 @@ def set_host_available(data: ServersData, host_name):
 
     if not updated:
         raise RuntimeError(f"Host '{host_name}' not found in data file.")
-
-    # Write back to file
-    with open(DATA_PATH, 'w') as f:
-        json.dump(data.to_dict(), f, indent=2)
 
     return True
 
@@ -61,9 +55,5 @@ def book_server(data: ServersData, host_name, user_name):
 
     if not updated:
         raise RuntimeError(f"Host '{host_name}' not found in data file.")
-
-    # Write back to file
-    with open(DATA_PATH, 'w') as f:
-        json.dump(data.to_dict(), f, indent=2)
 
     return True

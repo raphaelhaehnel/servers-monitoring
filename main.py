@@ -1,5 +1,6 @@
 import sys
 import threading
+import time
 
 from infrastructure.config_parser import ConfigParser
 from front.front_launcher import launch_front
@@ -33,6 +34,7 @@ if __name__ == '__main__':
                                  args=(shared_servers, shared_cluster, shared_requests, shared_master, is_admin),
                                  daemon=True)
     ui_thread.start()
+    time.sleep(0.5)
 
     try:
         config = ConfigParser()

@@ -2,7 +2,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
-from front.resources.resources_rc_old import qInitResources, qCleanupResources
+from front.resources.resources_rc import qInitResources, qCleanupResources
 from front.resources.stylesheet import style
 from front.widgets.mainWindow import MainWindow
 from infrastructure.shared_models.shared_clusterView import SharedClusterView

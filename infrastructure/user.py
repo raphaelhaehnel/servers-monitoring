@@ -3,8 +3,6 @@ import logging
 import socket
 import threading
 import time
-from functools import partial
-from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 import requests
@@ -31,7 +29,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(na
 
 
 class User:
-    def __init__(self, config, shared_servers: SharedServersData, shared_cluster: SharedClusterView, shared_requests: SharedUserRequests, shared_master: SharedIsMaster):
+    def __init__(self, config, shared_servers: SharedServersData, shared_cluster: SharedClusterView, shared_requests: SharedUserRequests, shared_is_master: SharedIsMaster):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
         self.ip: str = IpManager().get_own_ip()
@@ -45,21 +43,20 @@ class User:
         self.udp_sender_socket = self.initialize_udp_sender_socket()
 
         # Data
-        self.servers_data: ServersData = servers_data
-        self.cluster_view: ClusterView = cluster_view
-        self.user_requests: UserRequests = user_requests
+        self.shared_servers: SharedServersData = shared_servers
+        self.shared_cluster: SharedClusterView = shared_cluster
+        self.shared_requests: SharedUserRequests = shared_requests
+        self.shared_is_master: SharedIsMaster = shared_is_master
 
         # Tasks
         self.heartbeat_sender_thread: threading.Thread = threading.Thread(target=self._heartbeat_sender, daemon=True)
         self.udp_listener_thread: threading.Thread = threading.Thread(target=self._udp_listener, daemon=True)
         self.tcp_server_thread: threading.Thread = threading.Thread(target=self._tcp_server, daemon=True)
         self.tcp_client_thread: threading.Thread = threading.Thread(target=self._tcp_client, daemon=True)
-        self.http_server_thread: threading.Thread = threading.Thread(target=self._http_server, daemon=True)
         self.ssh_polling_thread: threading.Thread = threading.Thread(target=self._ssh_sender, daemon=True)
         self.data_saver_thread: threading.Thread = threading.Thread(target=self._save_data_to_file, daemon=True)
         self.active_client_threads: list[threading.Thread] = []
 
-        # TODO If you use HTTP, post the data instead of doing get and then respond (less traffic)
         # TODO between back and front, use event-driven updates
         # - the back gives the data and master update
         # - the front gives the master update only
@@ -75,7 +72,6 @@ class User:
         self.load_server_data()
 
         self.udp_listener_thread.start()
-        self.http_server_thread.start()
 
         # Request to join the network
         threading.Thread(target=self._join_network, daemon=True).start()
@@ -94,18 +90,13 @@ class User:
         try:
             with open(filename, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                self.servers_data = ServersData().from_json(data)
+                self.shared_servers.data = ServersData.from_json(data)
         except Exception as e:
             self.logger.error(f"Failed to load ServerData: {e}")
 
-    def start_master_tasks(self, update_front=False):
+    def start_master_tasks(self):
         self.role = Role.MASTER
-        if update_front:
-            try:
-                requests.post(f"http://localhost:{str(self.config.HTTP_PORT_FRONT)}/updateRole", data=f"master", timeout=1)
-                self.logger.info(f"Sent updateRole MASTER request to the front")
-            except Exception as e:
-                self.logger.warning(f"Failed to send updateRole MASTER request to the front: {e}")
+        self.shared_is_master.data = True
 
         if self.tcp_client_thread.is_alive():
             self.tcp_client_thread.join(1)
@@ -160,28 +151,6 @@ class User:
         else:
             self.logger.warning(f"Thread <TCP_CLIENT> was still alive. This is not the right behavior...")
 
-    def _http_server(self):
-        class Handler(BaseHTTPRequestHandler):
-            def __init__(self, *args, node_instance=None, **kwargs):
-                self.node_instance = node_instance
-                super().__init__(*args, **kwargs)
-
-            def do_POST(self_inner):
-                if self_inner.path == '/promote':
-                    # handle REST trigger for master change
-                    self.send_force_master()
-                    self.start_master_tasks()
-                    self.logger.info("Promoted to master via HTTP, congratulations!")
-                    self_inner.send_response(200)
-                    self_inner.end_headers()
-                else:
-                    self_inner.send_response(404)
-                    self_inner.end_headers()
-
-        handler_with_context = partial(Handler, node_instance=self)
-        httpd = HTTPServer(('0.0.0.0', self.config.HTTP_PORT), handler_with_context)
-        httpd.serve_forever()
-
     def _tcp_server(self):
         self.logger.info(f"Thread <TCP_SERVER> started!")
 
@@ -200,7 +169,7 @@ class User:
             self.logger.info(f'A new client connected at address {src_ip}')
             thread = threading.Thread(target=self._handle_client, args=(connection, src_ip), daemon=True)
             self.active_client_threads.append(thread)
-            self.cluster_view.add_or_update(src_ip, Role.SLAVE)
+            self.shared_cluster.data.add_or_update(src_ip, Role.SLAVE)
             thread.start()
 
     def _tcp_client(self):
@@ -226,9 +195,9 @@ class User:
                 self.logger.info(f"Fetched message of type {message.get_name()}")
 
                 if isinstance(message, StateUpdateMessage):
-                    self.servers_data = message.servers_data
-                    self.cluster_view = message.cluster_view
-                    self.user_requests = message.user_requests
+                    self.shared_servers.data = message.servers_data
+                    self.shared_cluster = message.cluster_view
+                    self.shared_requests = message.user_requests
 
                 time.sleep(self.config.FETCH_INTERVAL / 1000)
 
@@ -270,12 +239,12 @@ class User:
             self.logger.info(f"Got message of type {message.get_name()}")
 
             if isinstance(message, FetchStateMessage):
-                response = StateUpdateMessage(self.servers_data, self.cluster_view, self.user_requests)
+                response = StateUpdateMessage(self.shared_servers.data, self.shared_cluster, self.shared_requests)
                 connection.send(response.to_json().encode())
                 self.logger.info(f"Sent message of type {response.get_name()}")
 
         connection.close()
-        self.cluster_view.remove(client_ip)
+        self.shared_cluster.data.remove(client_ip)
         self.logger.warning(f"Socket of client {client_ip} has been closed.")
 
     def _heartbeat_sender(self):
@@ -336,9 +305,9 @@ class User:
         elif isinstance(message, JoinResponseMessage) and self.role == Role.SLAVE:
             # Save the ip of the master, and update the data
             self.master_ip = src_ip
-            self.servers_data: ServersData = message.servers_data
-            self.cluster_view: ClusterView = message.cluster_view
-            self.user_requests: UserRequests = message.user_requests
+            self.shared_servers: ServersData = message.servers_data
+            self.shared_cluster: ClusterView = message.cluster_view
+            self.shared_requests: UserRequests = message.user_requests
             self.last_master_heartbeat = time.time()
             self.tcp_client_thread.start()
             self.logger.info(f"Master identified at address {src_ip} and acquired data successfully")
@@ -348,22 +317,22 @@ class User:
             self.logger.info(f"Master still living!")
 
         elif isinstance(message, LeaveNotificationMessage):
-            self.cluster_view.remove(src_ip)
+            self.shared_cluster.remove(src_ip)
 
             # If the user who leaved is the master
             if src_ip == self.master_ip:
-                self.master_ip = self.cluster_view.get_highest_ip().nodeIP
+                self.master_ip = self.shared_cluster.get_highest_ip().nodeIP
                 self.logger.info(f"The master {src_ip} disconnected. The new master is {self.master_ip}")
 
                 if self.master_ip == self.ip:
-                    self.start_master_tasks(update_front=True)
+                    self.start_master_tasks()
                     self.logger.info(f"You've been chose as the new master, congratulations!")
             else:
                 self.logger.info(f"The slave {src_ip} disconnected")
 
         elif isinstance(message, ForceMasterMessage):
             self.master_ip = src_ip
-            self.cluster_view.add_or_update(src_ip, Role.MASTER)
+            self.shared_cluster.add_or_update(src_ip, Role.MASTER)
             self.logger.info(f"The slave {src_ip} forced master. Long live to the new master !")
             self.start_slave_tasks()
 
@@ -380,7 +349,7 @@ class User:
         threading.Thread(target=self._join_network, daemon=True).start()
 
     def _reply_join(self, dest_ip):
-        response = JoinResponseMessage(self.servers_data, self.cluster_view, self.user_requests)
+        response = JoinResponseMessage(self.shared_servers.data, self.shared_cluster, self.shared_requests)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.sendto(response.to_json().encode(), (dest_ip, self.config.UDP_PORT))
         sock.close()
@@ -394,7 +363,7 @@ class User:
 
         self.logger.info("No master found. You've been promoted to master!")
         self.master_ip = IpManager().get_own_ip()
-        self.start_master_tasks(update_front=True)
+        self.start_master_tasks()
 
     def _send_join_request(self):
         request_message = JoinRequestMessage(self.ip)
@@ -410,7 +379,7 @@ class User:
         self.logger.info(f"Thread <SSH_SENDER> started!")
         while not self.stop_event.is_set():
             self.logger.info("SSH command sent!")
-            self.servers_data.last_update = int(time.time())
+            self.shared_servers.data.last_update = int(time.time())
             time.sleep(self.config.SERVER_POLLING_INTERVAL / 1000)
 
     def _save_data_to_file(self):
@@ -429,7 +398,7 @@ class User:
 
             filename = save_dir / "ServersData.json"
             try:
-                data = self.servers_data.to_dict()
+                data = self.shared_servers.data.to_dict()
             except Exception as e:
                 self.logger.error(f"Failed to serialize servers_data: {e}")
                 continue
