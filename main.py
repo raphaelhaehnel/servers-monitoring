@@ -2,6 +2,8 @@ import sys
 import threading
 import time
 
+from PySide6.QtWidgets import QApplication
+
 from infrastructure.config_parser import ConfigParser
 from front.front_launcher import launch_front
 from infrastructure.shared_models.shared_clusterView import SharedClusterView
@@ -12,6 +14,7 @@ from infrastructure.user import User
 from models.clusterView import ClusterView
 from models.serversData import ServersData
 from models.userRequests import UserRequests
+from front.resources.stylesheet import style
 
 if __name__ == '__main__':
 
@@ -29,13 +32,6 @@ if __name__ == '__main__':
     shared_requests = SharedUserRequests(user_requests)
     shared_master = SharedIsMaster(is_master)
 
-    # Launch the Qt UI, passing these wrappers
-    ui_thread = threading.Thread(target=launch_front,
-                                 args=(shared_servers, shared_cluster, shared_requests, shared_master, is_admin),
-                                 daemon=True)
-    ui_thread.start()
-    time.sleep(0.5)
-
     try:
         config = ConfigParser()
 
@@ -44,4 +40,22 @@ if __name__ == '__main__':
         sys.exit(1)
 
     user = User(config, shared_servers, shared_cluster, shared_requests, shared_master)
-    user.start()
+    backend_thread = threading.Thread(target=user.start, daemon=True)
+    backend_thread.start()
+
+    app = QApplication(sys.argv)
+    app.setStyleSheet(style)
+
+    # Tell Qt to call user.shutdown() just before the app quits
+    app.aboutToQuit.connect(user.shutdown)
+
+    window = launch_front(shared_servers, shared_cluster, shared_requests, shared_master, is_admin)
+    window.show()
+
+    # Enter Qt main loop. When the user closes the window, this will emit aboutToQuit.
+    ret = app.exec()
+
+    # (Optional) wait for backend to finish
+    backend_thread.join()
+
+    sys.exit(ret)

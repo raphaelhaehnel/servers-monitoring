@@ -88,6 +88,7 @@ class MainWindow(QWidget):
         self.shared_master.dataChanged.connect(self.update_master_button)
         # When the master is being updated in the back, update also the front
 
+        self.update_items()
         print("Initialized the front")
 
     def update_items(self):
