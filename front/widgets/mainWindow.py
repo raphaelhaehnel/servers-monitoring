@@ -1,6 +1,4 @@
-import copy
 import json
-import time
 from datetime import datetime
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QFrame
@@ -150,10 +148,3 @@ class MainWindow(QWidget):
         else:
             self.footer_frame.btn_master.setStyleSheet("background-color: #d32f2f")
             self.footer_frame.btn_master.setEnabled(True)
-
-    def closeEvent(self, event):
-        # Stop background thread forcefully and immediately
-        #TODO stop the whole application
-
-        # Proceed to close the window
-        super().closeEvent(event)

@@ -405,7 +405,8 @@ class User:
 
             try:
                 with open(filename, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, ensure_ascii=False, indent=2)
+                    text = json.dumps(data, ensure_ascii=False, indent=2)
+                    f.write(text)
                 self.logger.info(f"Saved servers_data snapshot to {filename}")
             except Exception as e:
                 self.logger.error(f"Error writing to {filename}: {e}")

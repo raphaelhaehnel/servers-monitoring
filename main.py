@@ -1,7 +1,7 @@
 import sys
 import threading
-import time
 
+from PySide6.QtCore import QCoreApplication
 from PySide6.QtWidgets import QApplication
 
 from infrastructure.config_parser import ConfigParser
@@ -47,7 +47,8 @@ if __name__ == '__main__':
     app.setStyleSheet(style)
 
     # Tell Qt to call user.shutdown() just before the app quits
-    app.aboutToQuit.connect(user.shutdown)
+    # This is the same as app.aboutToQuit, but with type-checker
+    QCoreApplication.instance().aboutToQuit.connect(user.shutdown)
 
     window = launch_front(shared_servers, shared_cluster, shared_requests, shared_master, is_admin)
     window.show()
