@@ -23,3 +23,15 @@ class ServerElement:
     def to_dict(self):
         return {"host": self.host, "app": self.app, "ip": self.ip, "env": self.env, "available": self.available,
                 "action": self.action, "since": self.since, "comment": self.comment}
+
+    def clone(self):
+        new = ServerElement()
+        new.host = self.host
+        new.app = self.app
+        new.ip = self.ip
+        new.env = self.env
+        new.available = self.available
+        new.action = self.action
+        new.since = self.since
+        new.comment = self.comment
+        return new

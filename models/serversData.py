@@ -32,5 +32,5 @@ class ServersData:
             new = ServersData()
             new.last_update = self.last_update
             # deep‐copy only the plain data, not the lock
-            new.servers_list = [s.to_dict() for s in self.servers_list]
+            new.servers_list = [s.clone() for s in self.servers_list]
         return new

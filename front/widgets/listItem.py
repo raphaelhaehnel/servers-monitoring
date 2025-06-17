@@ -106,8 +106,6 @@ class ListItem(QWidget):
 
     def open_free_dialog(self):
         main_window = self.window()
-        if hasattr(main_window, 'data_listener_thread'):
-            main_window.data_listener_thread.pause()
 
         dialog = FreeServerDialog(self.host)
         if dialog.exec():
@@ -117,17 +115,11 @@ class ListItem(QWidget):
         else:
             print("User cancelled the action.")
 
-        if hasattr(main_window, 'refresh_now'):
-            main_window.refresh_now()
-
-        # after dialog, resume updates
-        if hasattr(main_window, 'data_listener_thread'):
-            main_window.data_listener_thread.resume()
+        if hasattr(main_window, 'update_items'):
+            main_window.update_items()
 
     def open_booking_dialog(self):
         main_window = self.window()
-        if hasattr(main_window, 'data_listener_thread'):
-            main_window.data_listener_thread.pause()
 
         dialog = ServerBookingDialog(self.host)
         if dialog.exec():
@@ -138,9 +130,5 @@ class ListItem(QWidget):
         else:
             print("Booking cancelled")
 
-        if hasattr(main_window, 'refresh_now'):
-            main_window.refresh_now()
-
-        # after dialog, resume updates
-        if hasattr(main_window, 'data_listener_thread'):
-            main_window.data_listener_thread.resume()
+        if hasattr(main_window, 'update_items'):
+            main_window.update_items()

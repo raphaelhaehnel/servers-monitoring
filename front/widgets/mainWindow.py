@@ -89,8 +89,8 @@ class MainWindow(QWidget):
         self.update_items()
         print("Initialized the front")
 
-    def update_items(self):
-        servers_data = self.shared_servers.data
+    def update_items(self, force=False):
+        servers_data: ServersData = self.shared_servers.data
         readable_date = datetime.fromtimestamp(servers_data.last_update)
         formatted_date = readable_date.strftime("%Y-%m-%d %H:%M:%S")
         self.footer_frame.label_last_update.setText("Last update time: " + formatted_date)
@@ -100,11 +100,12 @@ class MainWindow(QWidget):
 
         if self.previous_data is not None:
             previous_data_str = json.dumps([s.to_dict() for s in self.previous_data.servers_list], sort_keys=True)
-            if current_data_str == previous_data_str:
+            if current_data_str == previous_data_str and not force:
+                print("No modification. Items remaining untouched.")
                 return
 
         print("A modification has been detected. Updating items.")
-        self.previous_data = servers_data.clone
+        self.previous_data = servers_data.clone()
 
         # Remove every widget in the scroll_layout
         while self.scroll_layout.count():
@@ -121,7 +122,7 @@ class MainWindow(QWidget):
             card_layout.setContentsMargins(5, 2, 5, 2)
 
             item = ListItem(entry.host, entry.app, entry.ip, entry.env, entry.available, entry.action, entry.since,
-                            self.is_admin, self.previous_data)
+                            self.is_admin, servers_data)
             card_layout.addWidget(item)
             self.scroll_layout.addWidget(card)
             self.items.append((card, item))
