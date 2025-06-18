@@ -96,6 +96,10 @@ class MainWindow(QWidget):
         self.footer_frame.label_last_update.setText("Last update time: " + formatted_date)
 
         # Compare current and previous data using a JSON string dump for simplicity
+        if not servers_data.servers_list:
+            print("There is no loaded data, ignoring update.")
+            return
+
         current_data_str = json.dumps([s.to_dict() for s in servers_data.servers_list], sort_keys=True)
 
         if self.previous_data is not None:

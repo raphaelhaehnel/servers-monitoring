@@ -69,8 +69,6 @@ class User:
         return sock
 
     def start(self):
-        self.load_server_data()
-
         self.udp_listener_thread.start()
 
         # Request to join the network
@@ -362,6 +360,7 @@ class User:
                 return
 
         self.logger.info("No master found. You've been promoted to master!")
+        self.load_server_data()
         self.master_ip = IpManager().get_own_ip()
         self.start_master_tasks()
 
