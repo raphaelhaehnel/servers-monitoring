@@ -97,6 +97,7 @@ class User:
             self.logger.error(f"Failed to load ServerData: {e}")
 
     def start_master_tasks(self):
+        print("start_master_tasks()")
         if self.master_ip:  # Check if another master was already defined
             self.send_force_master()
 
@@ -128,6 +129,7 @@ class User:
 
 
     def start_slave_tasks(self):
+        print("start_slave_tasks()")
         self.role = Role.SLAVE
 
         if self.heartbeat_sender_thread.is_alive():
@@ -219,6 +221,7 @@ class User:
 
     def _handle_client(self, connection, client_ip):
         while not self.stop_event.is_set():
+            msg = None
             try:
                 data = connection.recv(4096)
                 msg = json.loads(data.decode())
@@ -234,6 +237,7 @@ class User:
 
             except Exception as e:
                 self.logger.error(f"Didn't succeed to handle message from the client: {e}")
+                self.logger.error(f"msg: {msg}")
                 continue
 
             self.logger.info(f"Got message of type {message.get_name()}")
@@ -325,7 +329,7 @@ class User:
                 self.logger.info(f"The master {src_ip} disconnected. The new master is {self.master_ip}")
 
                 if self.master_ip == self.ip:
-                    self.shared_is_master.data = True # Call self.start_master_tasks()
+                    self.shared_is_master.data = True # Call self.start_role_tasks()
                     self.logger.info(f"You've been chose as the new master, congratulations!")
             else:
                 self.logger.info(f"The slave {src_ip} disconnected")
@@ -334,7 +338,7 @@ class User:
             self.master_ip = src_ip
             self.shared_cluster.data.add_or_update(src_ip, Role.MASTER)
             self.logger.info(f"The slave {src_ip} forced master. Long live to the new master !")
-            self.shared_is_master.data = False # Call self.start_master_tasks()
+            self.shared_is_master.data = False # Call self.start_role_tasks()
 
     def reinitialize_connection(self):
         # Stop the TCP connection to the server
@@ -363,7 +367,7 @@ class User:
 
         self.logger.info("No master found. You've been promoted to master!")
         self.load_server_data()
-        self.shared_is_master.data = True # Call self.start_master_tasks()
+        self.shared_is_master.data = True # Call self.start_role_tasks()
 
     def _send_join_request(self):
         request_message = JoinRequestMessage(self.ip)
