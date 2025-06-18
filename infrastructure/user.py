@@ -105,7 +105,7 @@ class User:
         self.role = Role.MASTER
 
         if self.tcp_client_thread.is_alive():
-            self.tcp_client_thread.join()
+            self.tcp_client_thread.join(0)
             self.logger.info(f"Shutting down Thread <TCP_CLIENT>")
 
         if not self.heartbeat_sender_thread.is_alive():
@@ -134,19 +134,19 @@ class User:
         self.role = Role.SLAVE
 
         if self.heartbeat_sender_thread.is_alive():
-            self.heartbeat_sender_thread.join()
+            self.heartbeat_sender_thread.join(0)
             self.logger.info(f"Shutting down Thread <HEARTBEAT_SENDER>")
 
         if self.tcp_server_thread.is_alive():
-            self.tcp_server_thread.join()
+            self.tcp_server_thread.join(0)
             self.logger.info(f"Shutting down Thread <TCP_SERVER>")
 
         if self.ssh_polling_thread.is_alive():
-            self.ssh_polling_thread.join()
+            self.ssh_polling_thread.join(0)
             self.logger.info(f"Shutting down Thread <SSH_POLLING>")
 
         if self.data_saver_thread.is_alive():
-            self.data_saver_thread.join()
+            self.data_saver_thread.join(0)
             self.logger.info(f"Shutting down Thread <DATA_SAVER_THREAD>")
 
         if not self.tcp_client_thread.is_alive():
@@ -344,7 +344,7 @@ class User:
     def reinitialize_connection(self):
         # Stop the TCP connection to the server
         if self.tcp_client_thread.is_alive():
-            self.tcp_client_thread.join()
+            self.tcp_client_thread.join(0)
             self.logger.info(f"Shutting down Thread <TCP_CLIENT>")
         else:
             self.logger.warning(f"Thread <TCP_CLIENT> was down. This is not the right behavior...")
