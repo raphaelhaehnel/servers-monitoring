@@ -48,6 +48,8 @@ class User:
         self.shared_requests: SharedUserRequests = shared_requests
         self.shared_is_master: SharedIsMaster = shared_is_master
 
+        self.shared_is_master.dataChanged.connect(self.start_master_tasks)
+
         # Tasks
         self.heartbeat_sender_thread: threading.Thread = threading.Thread(target=self._heartbeat_sender, daemon=True)
         self.udp_listener_thread: threading.Thread = threading.Thread(target=self._udp_listener, daemon=True)
@@ -93,8 +95,8 @@ class User:
             self.logger.error(f"Failed to load ServerData: {e}")
 
     def start_master_tasks(self):
+        self.master_ip = IpManager().get_own_ip()
         self.role = Role.MASTER
-        self.shared_is_master.data = True
 
         if self.tcp_client_thread.is_alive():
             self.tcp_client_thread.join(1)
@@ -323,7 +325,7 @@ class User:
                 self.logger.info(f"The master {src_ip} disconnected. The new master is {self.master_ip}")
 
                 if self.master_ip == self.ip:
-                    self.start_master_tasks()
+                    self.shared_is_master.data = True # Call self.start_master_tasks()
                     self.logger.info(f"You've been chose as the new master, congratulations!")
             else:
                 self.logger.info(f"The slave {src_ip} disconnected")
@@ -361,8 +363,7 @@ class User:
 
         self.logger.info("No master found. You've been promoted to master!")
         self.load_server_data()
-        self.master_ip = IpManager().get_own_ip()
-        self.start_master_tasks()
+        self.shared_is_master.data = True # Call self.start_master_tasks()
 
     def _send_join_request(self):
         request_message = JoinRequestMessage(self.ip)

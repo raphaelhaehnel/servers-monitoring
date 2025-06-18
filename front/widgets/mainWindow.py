@@ -82,8 +82,8 @@ class MainWindow(QWidget):
         self.shared_servers.dataChanged.connect(self.update_items)
         # When the servers data is being updated in the back, update also the front
 
-        self.shared_master = shared_master
-        self.shared_master.dataChanged.connect(self.update_master_button)
+        self.shared_is_master = shared_master
+        self.shared_is_master.dataChanged.connect(self.update_master_button)
         # When the master is being updated in the back, update also the front
 
         self.update_items()
@@ -146,8 +146,8 @@ class MainWindow(QWidget):
                 item.matches_conditions(state) and item.matches(self.filter_panel.search_bar.text().lower()))
 
     def update_master_button(self):
-        self.footer_frame.btn_master.setText("Master" if self.shared_master.data else "Slave")
-        if self.shared_master.data:
+        self.footer_frame.btn_master.setText("Master" if self.shared_is_master.data else "Slave")
+        if self.shared_is_master.data:
             self.footer_frame.btn_master.setStyleSheet("background-color: #388e3c")
             self.footer_frame.btn_master.setEnabled(False)
         else:
