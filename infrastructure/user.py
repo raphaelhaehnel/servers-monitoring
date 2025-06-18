@@ -378,9 +378,37 @@ class User:
     def _ssh_sender(self):
         self.logger.info(f"Thread <SSH_SENDER> started!")
         while not self.stop_event.is_set():
-            self.logger.info("SSH command sent!")
-            self.shared_servers.data.last_update = int(time.time())
             time.sleep(self.config.SERVER_POLLING_INTERVAL / 1000)
+
+            self.shared_servers.data.last_update = int(time.time())
+
+            self.shared_servers.typed_data.servers_list[0].available = False
+            self.shared_servers.typed_data.servers_list[0].action = "Raphael"
+            self.shared_servers.typed_data.servers_list[0].since = int(time.time())
+
+            self.shared_servers.typed_data.servers_list[1].available = True
+            self.shared_servers.typed_data.servers_list[1].action = "Available"
+            self.shared_servers.typed_data.servers_list[1].since = 0
+
+            self.shared_servers.dataChanged.emit()
+
+            self.logger.info("SSH command sent!")
+
+            time.sleep(self.config.SERVER_POLLING_INTERVAL / 1000)
+
+            self.shared_servers.data.last_update = int(time.time())
+
+            self.shared_servers.typed_data.servers_list[0].available = True
+            self.shared_servers.typed_data.servers_list[0].action = "Available"
+            self.shared_servers.typed_data.servers_list[0].since = 0
+
+            self.shared_servers.typed_data.servers_list[1].available = False
+            self.shared_servers.typed_data.servers_list[1].action = "Odelia"
+            self.shared_servers.typed_data.servers_list[1].since = time.time()
+
+            self.logger.info("SSH command sent!")
+
+            self.shared_servers.dataChanged.emit()
 
     def _save_data_to_file(self):
         """

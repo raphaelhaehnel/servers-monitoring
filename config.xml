@@ -17,5 +17,5 @@
 <!--    <SavingInterval>120000</SavingInterval>-->
     <SavingInterval>2000</SavingInterval>
 
-    <ServerPollingInterval>10000</ServerPollingInterval>
+    <ServerPollingInterval>5000</ServerPollingInterval>
 </InfrastructureConfig>

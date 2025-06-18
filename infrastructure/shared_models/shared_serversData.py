@@ -19,3 +19,7 @@ class SharedServersData(QObject):
         self.dataChanged.emit()
 
     data = Property(object, _get_data, _set_data, notify=dataChanged)
+
+    @property
+    def typed_data(self) -> ServersData:
+        return self._data
