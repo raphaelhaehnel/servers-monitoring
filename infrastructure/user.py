@@ -194,8 +194,8 @@ class User:
 
                 if isinstance(message, StateUpdateMessage):
                     self.shared_servers.data = message.servers_data
-                    self.shared_cluster = message.cluster_view
-                    self.shared_requests = message.user_requests
+                    self.shared_cluster.data = message.cluster_view
+                    self.shared_requests.data = message.user_requests
 
                 time.sleep(self.config.FETCH_INTERVAL / 1000)
 
@@ -237,7 +237,7 @@ class User:
             self.logger.info(f"Got message of type {message.get_name()}")
 
             if isinstance(message, FetchStateMessage):
-                response = StateUpdateMessage(self.shared_servers.data, self.shared_cluster, self.shared_requests)
+                response = StateUpdateMessage(self.shared_servers.data, self.shared_cluster.data, self.shared_requests.data)
                 connection.send(response.to_json().encode())
                 self.logger.info(f"Sent message of type {response.get_name()}")
 
@@ -303,9 +303,9 @@ class User:
         elif isinstance(message, JoinResponseMessage) and self.role == Role.SLAVE:
             # Save the ip of the master, and update the data
             self.master_ip = src_ip
-            self.shared_servers: ServersData = message.servers_data
-            self.shared_cluster: ClusterView = message.cluster_view
-            self.shared_requests: UserRequests = message.user_requests
+            self.shared_servers.data = message.servers_data
+            self.shared_cluster.data = message.cluster_view
+            self.shared_requests.data = message.user_requests
             self.last_master_heartbeat = time.time()
             self.tcp_client_thread.start()
             self.logger.info(f"Master identified at address {src_ip} and acquired data successfully")
@@ -315,11 +315,11 @@ class User:
             self.logger.info(f"Master still living!")
 
         elif isinstance(message, LeaveNotificationMessage):
-            self.shared_cluster.remove(src_ip)
+            self.shared_cluster.data.remove(src_ip)
 
             # If the user who leaved is the master
             if src_ip == self.master_ip:
-                self.master_ip = self.shared_cluster.get_highest_ip().nodeIP
+                self.master_ip = self.shared_cluster.data.get_highest_ip().nodeIP
                 self.logger.info(f"The master {src_ip} disconnected. The new master is {self.master_ip}")
 
                 if self.master_ip == self.ip:
@@ -330,7 +330,7 @@ class User:
 
         elif isinstance(message, ForceMasterMessage):
             self.master_ip = src_ip
-            self.shared_cluster.add_or_update(src_ip, Role.MASTER)
+            self.shared_cluster.data.add_or_update(src_ip, Role.MASTER)
             self.logger.info(f"The slave {src_ip} forced master. Long live to the new master !")
             self.start_slave_tasks()
 
@@ -347,7 +347,7 @@ class User:
         threading.Thread(target=self._join_network, daemon=True).start()
 
     def _reply_join(self, dest_ip):
-        response = JoinResponseMessage(self.shared_servers.data, self.shared_cluster, self.shared_requests)
+        response = JoinResponseMessage(self.shared_servers.data, self.shared_cluster.data, self.shared_requests.data)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.sendto(response.to_json().encode(), (dest_ip, self.config.UDP_PORT))
         sock.close()
