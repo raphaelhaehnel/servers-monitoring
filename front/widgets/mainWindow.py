@@ -32,7 +32,7 @@ from models.serversData import ServersData
 # TODO add sort by 'since' time
 
 class MainWindow(QWidget):
-    def __init__(self, shared_servers: SharedServersData, shared_cluster: SharedClusterView, shared_requests: SharedUserRequests, shared_master: SharedIsMaster, is_admin: bool, update_interval=3):
+    def __init__(self, shared_servers: SharedServersData, shared_cluster: SharedClusterView, shared_requests: SharedUserRequests, shared_master: SharedIsMaster, is_admin: bool):
         super().__init__()
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setObjectName("MainWindow")
@@ -75,7 +75,7 @@ class MainWindow(QWidget):
         main_layout.addWidget(self.scroll)
 
         # Footer layout
-        self.footer_frame = FooterLayout()
+        self.footer_frame = FooterLayout(shared_master)
         main_layout.addWidget(self.footer_frame)
 
         self.shared_servers = shared_servers
@@ -83,8 +83,11 @@ class MainWindow(QWidget):
         # When the servers data is being updated in the back, update also the front
 
         self.shared_is_master = shared_master
-        self.shared_is_master.dataChanged.connect(self.update_master_button)
+        self.shared_is_master.dataChanged.connect(self.footer_frame.update_master_button)
         # When the master is being updated in the back, update also the front
+
+        self.shared_cluster: SharedClusterView = shared_cluster
+        self.shared_requests: SharedUserRequests = shared_requests
 
         self.update_items()
         print("Initialized the front")
@@ -144,12 +147,3 @@ class MainWindow(QWidget):
         for card, item in self.items:
             card.setVisible(
                 item.matches_conditions(state) and item.matches(self.filter_panel.search_bar.text().lower()))
-
-    def update_master_button(self):
-        self.footer_frame.btn_master.setText("Master" if self.shared_is_master.data else "Slave")
-        if self.shared_is_master.data:
-            self.footer_frame.btn_master.setStyleSheet("background-color: #388e3c")
-            self.footer_frame.btn_master.setEnabled(False)
-        else:
-            self.footer_frame.btn_master.setStyleSheet("background-color: #d32f2f")
-            self.footer_frame.btn_master.setEnabled(True)

@@ -20,9 +20,7 @@ from infrastructure.shared_models.shared_clusterView import SharedClusterView
 from infrastructure.shared_models.shared_isMaster import SharedIsMaster
 from infrastructure.shared_models.shared_serversData import SharedServersData
 from infrastructure.shared_models.shared_userRequests import SharedUserRequests
-from models.clusterView import ClusterView
 from models.serversData import ServersData
-from models.userRequests import UserRequests
 from models.role import Role
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s - %(message)s')
@@ -95,6 +93,9 @@ class User:
             self.logger.error(f"Failed to load ServerData: {e}")
 
     def start_master_tasks(self):
+        if self.master_ip:  # Check if another master was already defined
+            self.send_force_master()
+
         self.master_ip = IpManager().get_own_ip()
         self.role = Role.MASTER
 

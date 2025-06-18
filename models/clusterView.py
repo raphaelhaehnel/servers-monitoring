@@ -12,17 +12,17 @@ class ClusterView:
         self.nodes = [ClusterNode().from_json(entry) for entry in data]
         return self
 
-    def add_or_update(self, nodeIP, role):
+    def add_or_update(self, node_ip, role):
         with self.lock:
             for n in self.nodes:
-                if n.nodeIP == nodeIP:
+                if n.nodeIP == node_ip:
                     n.role = role
                     return
-            self.nodes.append(ClusterNode(nodeIP, role))
+            self.nodes.append(ClusterNode(node_ip, role))
 
-    def remove(self, nodeIP):
+    def remove(self, node_ip):
         with self.lock:
-            self.nodes = [n for n in self.nodes if n.nodeIP != nodeIP]
+            self.nodes = [n for n in self.nodes if n.nodeIP != node_ip]
 
     def to_list(self):
         with self.lock:

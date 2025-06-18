@@ -2,8 +2,8 @@ from models.role import Role
 
 
 class ClusterNode:
-    def __init__(self, nodeIP="", role=None):
-        self.nodeIP: str = nodeIP
+    def __init__(self, node_ip="", role=None):
+        self.nodeIP: str = node_ip
         self.role: Role | None = role
 
     def from_json(self, data):

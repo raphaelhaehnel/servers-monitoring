@@ -11,6 +11,7 @@ class CustomTitleBar(QWidget):
         self.parent = parent
         self.setFixedHeight(40)
         self.setObjectName("customTitleBar")
+        self.offset = None
         layout = QHBoxLayout(self)
         layout.setContentsMargins(10, 0, 10, 0)
 
