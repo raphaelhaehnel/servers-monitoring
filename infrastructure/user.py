@@ -5,8 +5,6 @@ import threading
 import time
 from pathlib import Path
 
-import requests
-
 from infrastructure.messages.fetchStateMessage import FetchStateMessage
 from infrastructure.messages.forceMasterMessage import ForceMasterMessage
 from infrastructure.messages.heartbeatMessage import HeartBeatMessage
@@ -46,7 +44,7 @@ class User:
         self.shared_requests: SharedUserRequests = shared_requests
         self.shared_is_master: SharedIsMaster = shared_is_master
 
-        self.shared_is_master.dataChanged.connect(self.start_master_tasks)
+        self.shared_is_master.dataChanged.connect(self.start_role_tasks)
 
         # Tasks
         self.heartbeat_sender_thread: threading.Thread = threading.Thread(target=self._heartbeat_sender, daemon=True)
@@ -79,6 +77,12 @@ class User:
                 time.sleep(1)
         except KeyboardInterrupt:
             self.shutdown()
+
+    def start_role_tasks(self):
+        if self.shared_is_master.data:
+            self.start_master_tasks()
+        else:
+            self.start_slave_tasks()
 
     def load_server_data(self):
         # Ensure the directory exists
@@ -125,11 +129,6 @@ class User:
 
     def start_slave_tasks(self):
         self.role = Role.SLAVE
-        try:
-            requests.post(f"http://localhost:{str(self.config.HTTP_PORT_FRONT)}/updateRole", data=f"slave", timeout=1)
-            self.logger.info(f"Sent updateRole SLAVE request to the front")
-        except Exception as e:
-            self.logger.warning(f"Failed to send updateRole SLAVE request to the front: {e}")
 
         if self.heartbeat_sender_thread.is_alive():
             self.heartbeat_sender_thread.join(1)
@@ -335,6 +334,7 @@ class User:
             self.master_ip = src_ip
             self.shared_cluster.data.add_or_update(src_ip, Role.MASTER)
             self.logger.info(f"The slave {src_ip} forced master. Long live to the new master !")
+            self.shared_is_master.data = False
             self.start_slave_tasks()
 
     def reinitialize_connection(self):
