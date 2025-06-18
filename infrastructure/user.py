@@ -334,8 +334,7 @@ class User:
             self.master_ip = src_ip
             self.shared_cluster.data.add_or_update(src_ip, Role.MASTER)
             self.logger.info(f"The slave {src_ip} forced master. Long live to the new master !")
-            self.shared_is_master.data = False
-            self.start_slave_tasks()
+            self.shared_is_master.data = False # Call self.start_master_tasks()
 
     def reinitialize_connection(self):
         # Stop the TCP connection to the server
