@@ -1,6 +1,6 @@
 # Peer-to-Peer Servers Monitoring
 
-## 🧠 Roles
+## Roles
 ### Master
 >* Sends heartbeats every 2 seconds over UDP
 >* Maintains the global serversData and userRequests
@@ -14,7 +14,7 @@
 >* Polls the master every second for state (FetchState over TCP)
 >* Forwards user operations to the master
 
-## 🧑💻 Communication Between Peers
+## Communication Between Peers
 ### UDP Broadcast Messages
 >* JoinRequest: Sent by slave on startup or reconnect
 >* Heartbeat: Sent by master every 2 seconds
@@ -28,7 +28,7 @@
 >
 > All nodes maintain a clusterView, which tracks the role (master/slave) and IP of each connected peer.
 
-## 🌐 Frontend-Backend Interaction
+## Frontend-Backend Interaction
 ### Frontend → Backend (HTTP POST)
 > **Promote Node to Master**
 >
@@ -53,7 +53,7 @@
 > * Start sending heartbeats 
 > * Start serving state via TCP
 
-## ✅ JSON Objects Used
+## JSON Objects Used
 
 > #### ServersData
 > 
