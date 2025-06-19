@@ -29,7 +29,9 @@ class User:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
         self.ip: str = IpManager().get_own_ip()
-        self.stop_event: threading.Event = threading.Event()
+        self.stop_core_event: threading.Event = threading.Event()
+        self.stop_master_event = threading.Event()
+        self.stop_slave_event = threading.Event()
         self.role: Role = Role.SLAVE
         self.master_ip: str = ""
         self.last_master_heartbeat: int = 0
@@ -51,14 +53,9 @@ class User:
         self.udp_listener_thread: threading.Thread = threading.Thread(target=self._udp_listener, daemon=True)
         self.tcp_server_thread: threading.Thread = threading.Thread(target=self._tcp_server, daemon=True)
         self.tcp_client_thread: threading.Thread = threading.Thread(target=self._tcp_client, daemon=True)
-        self.ssh_polling_thread: threading.Thread = threading.Thread(target=self._ssh_sender, daemon=True)
-        self.data_saver_thread: threading.Thread = threading.Thread(target=self._save_data_to_file, daemon=True)
+        self.ssh_polling_thread: threading.Thread = threading.Thread(target=self._ssh_polling, daemon=True)
+        self.data_saver_thread: threading.Thread = threading.Thread(target=self._data_saver, daemon=True)
         self.active_client_threads: list[threading.Thread] = []
-
-        # TODO between back and front, use event-driven updates
-        # - the back gives the data and master update
-        # - the front gives the master update only
-        # Use threading.Event() or queue.Queue()
 
     @staticmethod
     def initialize_udp_sender_socket():
@@ -73,8 +70,9 @@ class User:
         threading.Thread(target=self._join_network, daemon=True).start()
 
         try:
-            while not self.stop_event.is_set():
-                time.sleep(1)
+            while not self.stop_core_event.is_set():
+                self.stop_core_event.wait(1)
+
         except KeyboardInterrupt:
             self.shutdown()
 
@@ -97,16 +95,16 @@ class User:
             self.logger.error(f"Failed to load ServerData: {e}")
 
     def start_master_tasks(self):
-        print("start_master_tasks()")
+        self.logger.info("Starting Master tasks")
+
         if self.master_ip:  # Check if another master was already defined
             self.send_force_master()
 
         self.master_ip = IpManager().get_own_ip()
         self.role = Role.MASTER
 
-        if self.tcp_client_thread.is_alive():
-            self.tcp_client_thread.join(0)
-            self.logger.info(f"Shutting down Thread <TCP_CLIENT>")
+        self.stop_slave_event.set()
+        self.stop_master_event.clear()
 
         if not self.heartbeat_sender_thread.is_alive():
             self.heartbeat_sender_thread.start()
@@ -130,24 +128,11 @@ class User:
 
 
     def start_slave_tasks(self):
-        print("start_slave_tasks()")
+        self.logger.info("Starting Slave tasks")
         self.role = Role.SLAVE
 
-        if self.heartbeat_sender_thread.is_alive():
-            self.heartbeat_sender_thread.join(0)
-            self.logger.info(f"Shutting down Thread <HEARTBEAT_SENDER>")
-
-        if self.tcp_server_thread.is_alive():
-            self.tcp_server_thread.join(0)
-            self.logger.info(f"Shutting down Thread <TCP_SERVER>")
-
-        if self.ssh_polling_thread.is_alive():
-            self.ssh_polling_thread.join(0)
-            self.logger.info(f"Shutting down Thread <SSH_POLLING>")
-
-        if self.data_saver_thread.is_alive():
-            self.data_saver_thread.join(0)
-            self.logger.info(f"Shutting down Thread <DATA_SAVER_THREAD>")
+        self.stop_master_event.set()
+        self.stop_slave_event.clear()
 
         if not self.tcp_client_thread.is_alive():
             self.tcp_client_thread.start()
@@ -163,17 +148,33 @@ class User:
 
         # Listen to new clients
         server.listen()
+        server.settimeout(1) # Set a timeout to avoid the blocking line server.accept()
+        has_logged_waiting = False # Flag to print log once for every new client
 
-        while not self.stop_event.is_set():
-            self.logger.info(f'Waiting for new clients...')
-            connection, address = server.accept()
-            connection.settimeout(self.config.CLIENT_TCP_TIMEOUT / 1000)
-            src_ip = address[0]
-            self.logger.info(f'A new client connected at address {src_ip}')
-            thread = threading.Thread(target=self._handle_client, args=(connection, src_ip), daemon=True)
-            self.active_client_threads.append(thread)
-            self.shared_cluster.data.add_or_update(src_ip, Role.SLAVE)
-            thread.start()
+        while not self.stop_master_event.is_set():
+            try:
+                if not has_logged_waiting:
+                    self.logger.info(f'Waiting for new clients...')
+                    has_logged_waiting = True
+
+                connection, address = server.accept()
+                has_logged_waiting = False  # Once a client connects, reset the flag
+                connection.settimeout(self.config.CLIENT_TCP_TIMEOUT / 1000)
+                src_ip = address[0]
+                self.logger.info(f'A new client connected at address {src_ip}')
+                thread = threading.Thread(target=self._handle_client, args=(connection, src_ip), daemon=True)
+                self.active_client_threads.append(thread)
+                self.shared_cluster.data.add_or_update(src_ip, Role.SLAVE)
+                thread.start()
+            except socket.timeout:
+                continue
+
+        for client_thread in self.active_client_threads:
+            client_thread.join(1)
+
+        server.close()
+        self.active_client_threads.clear()
+        self.logger.info(f"Thread <TCP_SERVER> is shutting down")
 
     def _tcp_client(self):
         client_socket = None
@@ -183,7 +184,7 @@ class User:
             client_socket.connect((self.master_ip, self.config.TCP_PORT))
             self.logger.info(f"Connected to master {self.master_ip}")
 
-            while not self.stop_event.is_set():
+            while not self.stop_slave_event.is_set():
                 client_socket.send(FetchStateMessage().to_json().encode())
                 self.logger.info("Sent message of type FetchStateMessage")
 
@@ -202,7 +203,7 @@ class User:
                     self.shared_cluster.data = message.cluster_view
                     self.shared_requests.data = message.user_requests
 
-                time.sleep(self.config.FETCH_INTERVAL / 1000)
+                self.stop_slave_event.wait(self.config.FETCH_INTERVAL / 1000)
 
             client_socket.close()
 
@@ -220,8 +221,10 @@ class User:
                 except Exception:
                     pass
 
+            self.logger.info(f"Thread <TCP_CLIENT> is shutting down")
+
     def _handle_client(self, connection, client_ip):
-        while not self.stop_event.is_set():
+        while not self.stop_master_event.is_set():
             msg = None
             try:
                 data = connection.recv(4096)
@@ -255,11 +258,13 @@ class User:
     def _heartbeat_sender(self):
         self.logger.info(f"Thread <HEARTBEAT_SENDER> started!")
 
-        while not self.stop_event.is_set():
+        while not self.stop_master_event.is_set():
             self.logger.info("Sending heartbeat broadcast")
             msg = HeartBeatMessage()
             self.udp_sender_socket.sendto(msg.to_json().encode(), ('<broadcast>', self.config.UDP_PORT))
-            time.sleep(self.config.HEARTBEAT_INTERVAL / 1000)
+            self.stop_master_event.wait(self.config.HEARTBEAT_INTERVAL / 1000)
+
+        self.logger.info(f"Thread <HEARTBEAT_SENDER> is shutting down")
 
     def _udp_listener(self):
         """
@@ -273,7 +278,7 @@ class User:
         sock.bind(('', self.config.UDP_PORT))
         show_waiting_log = True
 
-        while not self.stop_event.is_set():
+        while not self.stop_core_event.is_set():
             if show_waiting_log:
                 self.logger.info("Waiting for UDP message...")
 
@@ -345,7 +350,7 @@ class User:
         # Stop the TCP connection to the server
         if self.tcp_client_thread.is_alive():
             self.tcp_client_thread.join(0)
-            self.logger.info(f"Shutting down Thread <TCP_CLIENT>")
+            self.logger.info(f"Thread <TCP_CLIENT> is shutting down")
         else:
             self.logger.warning(f"Thread <TCP_CLIENT> was down. This is not the right behavior...")
 
@@ -363,7 +368,7 @@ class User:
     def _join_network(self):
         for _ in range(self.config.JOIN_NETWORK_ATTEMPTS):
             self._send_join_request()
-            time.sleep(self.config.JOIN_NETWORK_INTERVAL / 1000)
+            self.stop_core_event.wait(self.config.JOIN_NETWORK_INTERVAL / 1000)
             if self.master_ip:
                 return
 
@@ -381,10 +386,10 @@ class User:
         self.udp_sender_socket.sendto(msg.to_json().encode(), ('<broadcast>', self.config.UDP_PORT))
         self.logger.info("Sent ForceMaster broadcast")
 
-    def _ssh_sender(self):
-        self.logger.info(f"Thread <SSH_SENDER> started!")
-        while not self.stop_event.is_set():
-            time.sleep(self.config.SERVER_POLLING_INTERVAL / 1000)
+    def _ssh_polling(self):
+        self.logger.info(f"Thread <SSH_POLLING> started!")
+        while not self.stop_master_event.is_set():
+            self.stop_master_event.wait(self.config.SERVER_POLLING_INTERVAL / 1000)
 
             self.shared_servers.data.last_update = int(time.time())
 
@@ -400,7 +405,7 @@ class User:
 
             self.logger.info("SSH command sent!")
 
-            time.sleep(self.config.SERVER_POLLING_INTERVAL / 1000)
+            self.stop_master_event.wait(self.config.SERVER_POLLING_INTERVAL / 1000)
 
             self.shared_servers.data.last_update = int(time.time())
 
@@ -416,19 +421,21 @@ class User:
 
             self.shared_servers.dataChanged.emit()
 
-    def _save_data_to_file(self):
+        self.logger.info(f"Thread <SSH_POLLING> is shutting down")
+
+    def _data_saver(self):
         """
         Periodically serialize `self.servers_data` to JSON files in
         the directory specified by SAVING_NETWORK_DIRECTORY.
         """
-        self.logger.info(f"Thread <SAVE_DATA_TO_FILE> started!")
+        self.logger.info(f"Thread <DATA_SAVER> started!")
 
         # Ensure the directory exists
         save_dir = Path(self.config.SAVING_NETWORK_DIRECTORY)
         save_dir.mkdir(parents=True, exist_ok=True)
 
-        while not self.stop_event.is_set():
-            time.sleep(self.config.SAVING_INTERVAL / 1000)
+        while not self.stop_master_event.is_set():
+            self.stop_master_event.wait(self.config.SAVING_INTERVAL / 1000)
 
             filename = save_dir / "ServersData.json"
             try:
@@ -445,10 +452,31 @@ class User:
             except Exception as e:
                 self.logger.error(f"Error writing to {filename}: {e}")
 
+        self.logger.info(f"Thread <DATA_SAVER> is shutting down")
+
     def shutdown(self):
         self._send_leave()
+        self.stop_core_event.set()
+        self.stop_master_event.set()
+        self.stop_slave_event.set()
         self.udp_sender_socket.close()
-        self.stop_event.set()
+
+        if self.heartbeat_sender_thread.is_alive():
+            self.heartbeat_sender_thread.join(1)
+        if self.udp_listener_thread.is_alive():
+            self.udp_listener_thread.join(1)
+        if self.tcp_server_thread.is_alive():
+            self.tcp_server_thread.join(1)
+        if self.tcp_client_thread.is_alive():
+            self.tcp_client_thread.join(1)
+        if self.ssh_polling_thread.is_alive():
+            self.ssh_polling_thread.join(1)
+        if self.data_saver_thread.is_alive():
+            self.data_saver_thread.join(1)
+
+        for thread in self.active_client_threads:
+            if thread.is_alive():
+                thread.join(1)
 
     def _send_leave(self):
         msg = LeaveNotificationMessage(self.ip)
