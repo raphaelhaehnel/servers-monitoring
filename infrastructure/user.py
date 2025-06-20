@@ -130,6 +130,7 @@ class User:
     def start_slave_tasks(self):
         self.logger.info("Starting Slave tasks")
         self.role = Role.SLAVE
+        self.last_master_heartbeat = time.time()
 
         self.stop_master_event.set()
         self.stop_slave_event.clear()
