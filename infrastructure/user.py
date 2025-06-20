@@ -107,21 +107,25 @@ class User:
         self.stop_master_event.clear()
 
         if not self.heartbeat_sender_thread.is_alive():
+            self.heartbeat_sender_thread = threading.Thread(target=self._heartbeat_sender, daemon=True)
             self.heartbeat_sender_thread.start()
         else:
             self.logger.warning(f"Thread <HEARTBEAT_SENDER> was still alive. This is not the right behavior...")
 
         if not self.tcp_server_thread.is_alive():
+            self.tcp_server_thread = threading.Thread(target=self._tcp_server, daemon=True)
             self.tcp_server_thread.start()
         else:
             self.logger.warning(f"Thread <TCP_SERVER> was still alive. This is not the right behavior...")
 
         if not self.ssh_polling_thread.is_alive():
+            self.ssh_polling_thread = threading.Thread(target=self._ssh_polling, daemon=True)
             self.ssh_polling_thread.start()
         else:
             self.logger.warning(f"Thread <SSH_POLLING> was still alive. This is not the right behavior...")
 
         if not self.data_saver_thread.is_alive():
+            self.data_saver_thread = threading.Thread(target=self._data_saver, daemon=True)
             self.data_saver_thread.start()
         else:
             self.logger.warning(f"Thread <DATA_SAVER_THREAD> was still alive. This is not the right behavior...")
@@ -136,6 +140,7 @@ class User:
         self.stop_slave_event.clear()
 
         if not self.tcp_client_thread.is_alive():
+            self.tcp_client_thread = threading.Thread(target=self._tcp_client, daemon=True)
             self.tcp_client_thread.start()
         else:
             self.logger.warning(f"Thread <TCP_CLIENT> was still alive. This is not the right behavior...")
