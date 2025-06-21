@@ -27,6 +27,7 @@ from models.serversData import ServersData
 # TODO the admin must be automatically be the master
 # TODO add mechanism: slave send request to the admin to choose a server. Add a request list for the admin
 # TODO add sort by 'since' time
+# TODO ERROR with 3 users: it doesn't work well
 
 class MainWindow(QWidget):
     def __init__(self, shared_servers: SharedServersData, shared_cluster: SharedClusterView, shared_requests: SharedUserRequests, shared_master: SharedIsMaster, is_admin: bool):
