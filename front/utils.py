@@ -42,7 +42,7 @@ def set_host_available(data: ServersData, host_name):
 
     return True
 
-def book_server(data: ServersData, host_name, user_name):
+def book_server(data: ServersData, host_name, user_name, comment):
     # Update matching entry
     updated = False
     for entry in data.servers_list:
@@ -50,6 +50,7 @@ def book_server(data: ServersData, host_name, user_name):
             entry.available = False
             entry.since = int(time.time())
             entry.action = user_name
+            entry.comment = comment
             updated = True
             break
 

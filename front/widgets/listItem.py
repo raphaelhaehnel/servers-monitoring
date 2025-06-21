@@ -10,16 +10,19 @@ from models.serversData import ServersData
 
 
 class ListItem(QWidget):
-    def __init__(self, host, app, ip, env, available, action_text, reservation_start, is_admin, data):
+    def __init__(self, host, app, ip, env, available, action_text, since, comment, is_admin, data):
         super().__init__()
         self.host: str = host
         self.app: str = app
         self.ip: str = ip
         self.env: str = env
         self.available: bool = available
-        self.reservation_start: int = reservation_start
+        self.reservation_start: int = since
         self.action_text: str = action_text
         self.data: ServersData = data
+        self.comment: str = comment
+
+        self.setToolTip(f"{comment}")
 
         layout = QHBoxLayout()
         layout.setSpacing(10)
@@ -35,7 +38,7 @@ class ListItem(QWidget):
             hover_text = "Book it!"
         self.action_button = HoverButton(action_text, hover_text, parent=self)
         self.action_button.setEnabled(is_admin)
-        self.start_time_label = QLabel(seconds_to_elapsed(reservation_start) if reservation_start != 0 else "0")
+        self.start_time_label = QLabel(seconds_to_elapsed(since) if since != 0 else "0")
 
         if not available:
             self.action_button.clicked.connect(self.open_free_dialog)
@@ -121,11 +124,11 @@ class ListItem(QWidget):
     def open_booking_dialog(self):
         main_window = self.window()
 
-        dialog = ServerBookingDialog(self.host)
+        dialog = ServerBookingDialog(self.host, self.comment)
         if dialog.exec():
             print("User booked server")
             booking_data = dialog.booking_data()
-            book_server(self.data, booking_data.host_name, booking_data.user)
+            book_server(self.data, booking_data.host_name, booking_data.user, booking_data.comment)
 
         else:
             print("Booking cancelled")

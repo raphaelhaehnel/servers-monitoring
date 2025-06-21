@@ -8,7 +8,7 @@ from models.serverBookingData import ServerBookingData
 
 
 class ServerBookingDialog(QDialog):
-    def __init__(self, server_name: str, parent=None):
+    def __init__(self, server_name: str, comment: str, parent=None):
         super().__init__(parent)
         self.server_name = server_name
 
@@ -20,7 +20,7 @@ class ServerBookingDialog(QDialog):
 
         # --- Form fields ---
         self.user_edit = QLineEdit()
-        self.comment_edit = QLineEdit()
+        self.comment_edit = QLineEdit(comment)
 
         form_layout = QFormLayout()
         form_layout.addRow("User:", self.user_edit)
