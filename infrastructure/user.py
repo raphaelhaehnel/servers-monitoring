@@ -248,6 +248,7 @@ class User:
             except Exception as e:
                 self.logger.error(f"Didn't succeed to handle message from the client: {e}")
                 self.logger.error(f"msg: {msg}")
+                #TODO I can get an error here, and it can do an infinite loop
                 continue
 
             self.logger.info(f"Got message of type {message.get_name()}")

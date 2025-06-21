@@ -19,6 +19,7 @@ class FooterLayout(QFrame):
         self.btn_master = QPushButton("Slave")
         self.footer_layout.addWidget(self.btn_master)
         self.btn_master.clicked.connect(self.set_master)
+        self.update_master_button()
 
         self.label_last_update = QLabel("Not up-to-date")
         self.label_last_update.setObjectName("lastUpdateTime")
