@@ -17,8 +17,6 @@ from models.filterState import FilterState
 from models.serversData import ServersData
 
 
-# TODO add logs for each action that has been done
-# TODO add logged as viewer or admin
 # TODO perform multiple threading to get all servers at once (10 by 10)
 # TODO In the lower right side, display when was the last update of the servers, and add a button for refresh now
 # TODO add settings: show scripts from rpmqa ?

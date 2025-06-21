@@ -234,6 +234,10 @@ class User:
             msg = None
             try:
                 data = connection.recv(4096)
+                if not data:  # Client closed cleanly
+                    self.logger.info(f"Client {client_ip} closed the connection.")
+                    break
+
                 msg = json.loads(data.decode())
                 message = MessageDeserializer().deserialize(msg)
 

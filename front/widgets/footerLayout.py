@@ -47,5 +47,10 @@ class FooterLayout(QFrame):
             self.btn_master.setStyleSheet("background-color: #388e3c")
             self.btn_master.setEnabled(False)
         else:
-            self.btn_master.setStyleSheet("background-color: #d32f2f")
+            self.btn_master.setStyleSheet("""QPushButton {
+                                                background-color: #d32f2f;
+                                            }
+                                            QPushButton:hover {
+                                                background-color: #f44336;
+                                            }""")
             self.btn_master.setEnabled(True)
