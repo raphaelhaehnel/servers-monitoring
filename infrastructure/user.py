@@ -183,6 +183,7 @@ class User:
         self.logger.info(f"Thread <TCP_SERVER> is shutting down")
 
     def _tcp_client(self):
+        self.logger.info(f"Thread <TCP_CLIENT> started!")
         client_socket = None
 
         try:
@@ -252,7 +253,6 @@ class User:
             except Exception as e:
                 self.logger.error(f"Didn't succeed to handle message from the client: {e}")
                 self.logger.error(f"msg: {msg}")
-                #TODO I can get an error here, and it can do an infinite loop
                 continue
 
             self.logger.info(f"Got message of type {message.get_name()}")
@@ -305,7 +305,7 @@ class User:
 
             except socket.timeout:
                 self.logger.warning(f"Timed out waiting for UDP messages. Didn't got Heartbeat from master. Reinitializing connection.")
-                self.reinitialize_connection()
+                self.restart_tcp_client()
 
     def _handle_udp(self, msg, src_ip):
         message = MessageDeserializer().deserialize(msg)
@@ -317,7 +317,7 @@ class User:
 
             if heartbeat_delay > self.config.HEARTBEAT_RETRIES * self.config.HEARTBEAT_INTERVAL / 1000:
                 self.logger.warning(f"Timed out waiting for Heartbeat message from master. Reinitializing connection.")
-                self.reinitialize_connection()
+                self.restart_tcp_client()
 
         if isinstance(message, JoinRequestMessage) and self.role == Role.MASTER:
             self._reply_join(src_ip)
@@ -330,6 +330,7 @@ class User:
             self.shared_cluster.data = message.cluster_view
             self.shared_requests.data = message.user_requests
             self.last_master_heartbeat = time.time()
+            self.tcp_client_thread = threading.Thread(target=self._tcp_client, daemon=True)
             self.tcp_client_thread.start()
             self.logger.info(f"Master identified at address {src_ip} and acquired data successfully")
 
@@ -355,20 +356,33 @@ class User:
             self.master_ip = src_ip
             self.shared_cluster.data.add_or_update(src_ip, Role.MASTER)
             self.logger.info(f"The slave {src_ip} forced master. Long live to the new master !")
-            self.shared_is_master.data = False # Call self.start_role_tasks()
 
-    def reinitialize_connection(self):
+            if self.shared_is_master.data:
+                self.shared_is_master.data = False # Call self.start_role_tasks()
+            else:
+                self.restart_tcp_client(master_exists=True)
+
+
+    def restart_tcp_client(self, master_exists=False):
         # Stop the TCP connection to the server
+
+        self.logger.info(f"Restarting the TCP connection")
+        self.stop_slave_event.set()
+
         if self.tcp_client_thread.is_alive():
-            self.tcp_client_thread.join(0)
+            # This is the maximum time we'll have to wait to let the previous thread close itself
+            self.tcp_client_thread.join(self.config.FETCH_INTERVAL / 1000)
             self.logger.info(f"Thread <TCP_CLIENT> is shutting down")
         else:
             self.logger.warning(f"Thread <TCP_CLIENT> was down. This is not the right behavior...")
 
-        self.master_ip: str = ""
-
-        # Try to connect to the master
-        threading.Thread(target=self._join_network, daemon=True).start()
+        self.stop_slave_event.clear()
+        if master_exists:
+            self.tcp_client_thread = threading.Thread(target=self._tcp_client, daemon=True)
+            self.tcp_client_thread.start()
+        else:
+            self.master_ip: str = ""
+            threading.Thread(target=self._join_network, daemon=True).start()
 
     def _reply_join(self, dest_ip):
         response = JoinResponseMessage(self.shared_servers.data, self.shared_cluster.data, self.shared_requests.data)
