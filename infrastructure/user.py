@@ -28,7 +28,7 @@ class User:
     def __init__(self, config, shared_servers: SharedServersData, shared_cluster: SharedClusterView, shared_requests: SharedUserRequests, shared_is_master: SharedIsMaster):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
-        self.ip: str = IpManager().get_own_ip()
+        self.ip: str = IpManager.get_own_ip()
         self.stop_core_event: threading.Event = threading.Event()
         self.stop_master_event = threading.Event()
         self.stop_slave_event = threading.Event()
@@ -100,7 +100,7 @@ class User:
         if self.master_ip:  # Check if another master was already defined
             self.send_force_master()
 
-        self.master_ip = IpManager().get_own_ip()
+        self.master_ip = IpManager.get_own_ip()
         self.role = Role.MASTER
 
         self.stop_slave_event.set()
@@ -295,7 +295,7 @@ class User:
 
             try:
                 data, addr = sock.recvfrom(4096)
-                if addr[0] == self.ip:
+                if addr[0] in IpManager.get_own_ips():
                     show_waiting_log = False
                     continue
 
@@ -424,7 +424,7 @@ class User:
 
             self.shared_servers.typed_data.servers_list[1].available = True
             self.shared_servers.typed_data.servers_list[1].action = "Available"
-            self.shared_servers.typed_data.servers_list[1].since = 0
+            self.shared_servers.typed_data.servers_list[1].since = -1
 
             self.shared_servers.dataChanged.emit()
 
@@ -436,7 +436,7 @@ class User:
 
             self.shared_servers.typed_data.servers_list[0].available = True
             self.shared_servers.typed_data.servers_list[0].action = "Available"
-            self.shared_servers.typed_data.servers_list[0].since = 0
+            self.shared_servers.typed_data.servers_list[0].since = -1
 
             self.shared_servers.typed_data.servers_list[1].available = False
             self.shared_servers.typed_data.servers_list[1].action = "Odelia"

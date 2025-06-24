@@ -9,7 +9,7 @@ from models.filterState import FilterState
 from models.serversData import ServersData
 
 
-class ListItem(QWidget):
+class CardItem(QWidget):
     def __init__(self, host, app, ip, env, available, action_text, since, comment, is_admin, data):
         super().__init__()
         self.host: str = host
@@ -17,7 +17,7 @@ class ListItem(QWidget):
         self.ip: str = ip
         self.env: str = env
         self.available: bool = available
-        self.reservation_start: int = since
+        self.since: int = since
         self.action_text: str = action_text
         self.data: ServersData = data
         self.comment: str = comment
@@ -38,7 +38,7 @@ class ListItem(QWidget):
             hover_text = "Book it!"
         self.action_button = HoverButton(action_text, hover_text, parent=self)
         self.action_button.setEnabled(is_admin)
-        self.start_time_label = QLabel(seconds_to_elapsed(since) if since != 0 else "0")
+        self.start_time_label = QLabel(seconds_to_elapsed(since) if since != -1 else "")
 
         if not available:
             self.action_button.clicked.connect(self.open_free_dialog)
@@ -76,7 +76,7 @@ class ListItem(QWidget):
                 q in self.ip.lower() or
                 q in self.env.lower() or
                 q in str(self.available).lower() or
-                q in str(self.reservation_start).lower() or
+                q in str(self.since).lower() or
                 q in self.action_text.lower()
         )
 

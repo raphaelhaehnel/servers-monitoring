@@ -1,14 +1,14 @@
 import json
 from datetime import datetime
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QFrame
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QFrame, QPushButton
 from PySide6.QtCore import Qt
 
 from front.column_width import ColumnWidth
 from front.widgets.customTitleBar import CustomTitleBar
 from front.widgets.filterPanel import FilterPanel
 from front.widgets.footerLayout import FooterLayout
-from front.widgets.listItem import ListItem
+from front.widgets.cardItem import CardItem
 from infrastructure.shared_models.shared_clusterView import SharedClusterView
 from infrastructure.shared_models.shared_isMaster import SharedIsMaster
 from infrastructure.shared_models.shared_serversData import SharedServersData
@@ -26,8 +26,6 @@ from models.serversData import ServersData
 # TODO Add user-comment and server-comment
 # TODO the admin must be automatically be the master
 # TODO add mechanism: slave send request to the admin to choose a server. Add a request list for the admin
-# TODO add sort by 'since' time
-# TODO ERROR with 3 users: it doesn't work well
 
 class MainWindow(QWidget):
     def __init__(self, shared_servers: SharedServersData, shared_cluster: SharedClusterView, shared_requests: SharedUserRequests, shared_master: SharedIsMaster, is_admin: bool):
@@ -53,14 +51,35 @@ class MainWindow(QWidget):
         bold_font.setBold(True)
 
         shift = 20
-        for name, width in zip(("Host", "App", "IP", "Env", "Available", "Reservation", "Since"), (
+        for name, width in zip(("Host", "App", "IP", "Env", "Available", "Reservation"), (
                 ColumnWidth.HOST + shift, ColumnWidth.APP + shift, ColumnWidth.IP + shift, ColumnWidth.ENV + shift,
-                ColumnWidth.AVAILABLE + shift, ColumnWidth.RESERVATION + shift, ColumnWidth.FROM + shift)):
+                ColumnWidth.AVAILABLE + shift, ColumnWidth.RESERVATION + shift)):
             lbl = QLabel(name)
             lbl.setFont(bold_font)
             lbl.setFixedWidth(width)
             header_layout.addWidget(lbl)
+
+        # QLabel for arrow
+        self.since_arrow = QLabel("")  # start with no arrow
+        self.since_arrow.setFont(bold_font)
+        self.since_arrow.setFixedWidth(20)
+        self.since_arrow.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        header_layout.addWidget(self.since_arrow)
+
+         # QPushButton label
+        self.since_btn = QPushButton("Since")
+        self.since_btn.setFont(bold_font)
+        self.since_btn.setFlat(True)
+        self.since_btn.setFixedWidth(ColumnWidth.FROM - shift)
+        self.since_btn.clicked.connect(self.cycle_sort)
+        header_layout.addWidget(self.since_btn)
+        header_layout.addSpacing(20)
+
         main_layout.addLayout(header_layout)
+
+
+        # sort_mode: 0 = no sort, 1 = ascending, 2 = descending
+        self.sort_mode: int = 0
 
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
@@ -68,7 +87,7 @@ class MainWindow(QWidget):
         self.scroll_layout = QVBoxLayout(self.scroll_content)
         self.scroll_layout.setSpacing(10)
         self.scroll_layout.setAlignment(Qt.AlignTop)
-        self.items: list[tuple[QFrame, ListItem]] = []
+        self.items: list[tuple[QFrame, CardItem]] = []
         self.scroll.setWidget(self.scroll_content)
         main_layout.addWidget(self.scroll)
 
@@ -89,6 +108,20 @@ class MainWindow(QWidget):
 
         self.update_items()
         print("Initialized the front")
+
+    def cycle_sort(self):
+        # cycle 0 → 1 → 2 → 0
+        self.sort_mode = (self.sort_mode + 1) % 3
+
+        # update the arrow icon
+        if self.sort_mode == 0:
+            self.since_arrow.setText("")
+        elif self.sort_mode == 1:
+            self.since_arrow.setText("▲")
+        else:
+            self.since_arrow.setText("▼")
+
+        self.update_items(force=True)
 
     def update_items(self, force=False):
         servers_data: ServersData = self.shared_servers.data
@@ -119,14 +152,23 @@ class MainWindow(QWidget):
                 w.deleteLater()
         self.items.clear()
 
-        for entry in servers_data.servers_list:
+        # copy the list so we don’t mutate the shared data
+        data_list = list(servers_data.servers_list)
+
+        if self.sort_mode == 1:  # ascending
+            data_list.sort(key=lambda s: s.since)
+        elif self.sort_mode == 2:  # descending
+            data_list.sort(key=lambda s: s.since, reverse=True)
+        # else: sort_mode == 0 → leave in “natural” server order
+
+        for entry in data_list:
             card = QFrame()
             card.setFrameShape(QFrame.StyledPanel)
             card.setObjectName("cardFrame")
             card_layout = QVBoxLayout(card)
             card_layout.setContentsMargins(5, 2, 5, 2)
 
-            item = ListItem(entry.host, entry.app, entry.ip, entry.env, entry.available, entry.action, entry.since, entry.comment,
+            item = CardItem(entry.host, entry.app, entry.ip, entry.env, entry.available, entry.action, entry.since, entry.comment,
                             self.is_admin, servers_data)
             card_layout.addWidget(item)
             self.scroll_layout.addWidget(card)

@@ -1,4 +1,3 @@
-import json
 import time
 from datetime import timedelta
 
@@ -32,7 +31,7 @@ def set_host_available(data: ServersData, host_name):
     for entry in data.servers_list:
         if entry.host == host_name:
             entry.available = True
-            entry.since = 0
+            entry.since = -1
             entry.action = "Available"
             updated = True
             break
