@@ -1,6 +1,3 @@
-from models.operationType import OperationType
-
-
 class UserRequest:
     def __init__(self):
         self.nodeIP: str = ""
@@ -20,5 +17,5 @@ class UserRequest:
         return self
 
     def to_dict(self):
-        return {"nodeIP": self.nodeIP, "timestamp": self.timestamp, "available": self.available,
-                "host": self.host, "user": self.user, "comment": self.comment}
+        return {"nodeIP": self.nodeIP, "timestamp": self.timestamp, "available": self.available, "host": self.host,
+                "user": self.user, "comment": self.comment}
