@@ -1,4 +1,3 @@
-import requests
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QPushButton, QLabel
 
@@ -7,7 +6,7 @@ from infrastructure.shared_models.shared_isMaster import SharedIsMaster
 
 class FooterLayout(QFrame):
     
-    def __init__(self, shared_master: SharedIsMaster):
+    def __init__(self, shared_master: SharedIsMaster, is_admin_wrapped :list[bool]):
         super().__init__()
         self.setObjectName("footerFrame")
         self.footer_layout = QHBoxLayout(self)
@@ -15,6 +14,7 @@ class FooterLayout(QFrame):
         self.footer_layout.setAlignment(Qt.AlignVCenter)
 
         self.shared_is_master: SharedIsMaster = shared_master
+        self.is_admin_wrapped = is_admin_wrapped
 
         self.btn_master = QPushButton("Slave")
         self.footer_layout.addWidget(self.btn_master)
@@ -45,7 +45,8 @@ class FooterLayout(QFrame):
         self.btn_master.setText("Master" if self.shared_is_master.data else "Slave")
         if self.shared_is_master.data:
             self.btn_master.setStyleSheet("background-color: #388e3c")
-            self.btn_master.setEnabled(False)
+            self.btn_master.setEnabled(True)
+            return
         else:
             self.btn_master.setStyleSheet("""QPushButton {
                                                 background-color: #d32f2f;
@@ -53,4 +54,8 @@ class FooterLayout(QFrame):
                                             QPushButton:hover {
                                                 background-color: #f44336;
                                             }""")
+
+        if self.is_admin_wrapped[0]:
             self.btn_master.setEnabled(True)
+        else:
+            self.btn_master.setEnabled(False)

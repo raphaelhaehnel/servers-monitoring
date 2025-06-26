@@ -306,6 +306,7 @@ class User:
 
             try:
                 data, addr = sock.recvfrom(4096)
+                print(addr[0])
                 if addr[0] in IpManager.get_own_ips():
                     show_waiting_log = False
                     continue
