@@ -18,7 +18,7 @@ class CardItem(QWidget):
         self.env: str = env
         self.available: bool = available
         self.since: int = since
-        self.reservation_text: str = reservation_text
+        self.reservation_text: str = "Available" if self.available else reservation_text
         self.data: ServersData = data
         self.comment: str = comment
 
@@ -36,7 +36,7 @@ class CardItem(QWidget):
             hover_text = "Free server"
         else:
             hover_text = "Book it!"
-        self.reservation_button = HoverButton(reservation_text, hover_text, parent=self)
+        self.reservation_button = HoverButton(self.reservation_text, hover_text, parent=self)
         self.reservation_button.setEnabled(is_admin)
         self.start_time_label = QLabel(seconds_to_elapsed(since) if since != -1 else "")
 

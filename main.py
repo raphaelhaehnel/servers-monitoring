@@ -24,7 +24,7 @@ if __name__ == '__main__':
     user_requests: UserRequests = UserRequests()
     is_master = False  # Must always be false at the beginning
 
-    is_admin = True
+    is_admin = False
 
     # Wrap the data in QObject wrappers in ordered to be shared
     shared_servers = SharedServersData(servers_data)
