@@ -347,6 +347,9 @@ class User:
             self.logger.info(f"Master identified at address {src_ip} and acquired data successfully")
 
         elif isinstance(message, HeartBeatMessage):
+            if self.shared_is_master.data:
+                self.logger.error(f"Got heartbeat message from another master!")
+
             self.last_master_heartbeat = time.time()
             self.logger.info(f"Master still living!")
 

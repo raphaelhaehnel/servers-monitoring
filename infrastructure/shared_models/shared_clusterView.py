@@ -17,4 +17,4 @@ class SharedClusterView(QObject):
         self._data = new
         self.dataChanged.emit()
 
-    data = Property(object, _get_data, _set_data, notify=dataChanged)
+    data: ClusterView = Property(object, _get_data, _set_data, notify=dataChanged)
