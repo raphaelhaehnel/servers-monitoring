@@ -63,7 +63,7 @@
     {
       "host": "server-01",
       "app": "Mid",
-      "ip": "192.168.0.10",
+      "status": "192.168.0.10",
       "env": "preprod",
       "available": true,
       "reservation": "Available",
