@@ -22,6 +22,11 @@ from models.serversData import ServersData
 # TODO add settings: show scripts from rpmqa ?
 # TODO add 'about'
 # TODO work on the bottom bar
+
+# TODO admin always takes the master
+# TODO filter by site
+# TODO add rpm status
+
 # TODO enable the master button only if admin + slave
 # TODO Add user-comment and server-comment
 # TODO the admin must be automatically be the master
@@ -168,7 +173,7 @@ class MainWindow(QWidget):
             card_layout = QVBoxLayout(card)
             card_layout.setContentsMargins(5, 2, 5, 2)
 
-            item = CardItem(entry.host, entry.app, entry.ip, entry.env, entry.available, entry.action, entry.since, entry.comment,
+            item = CardItem(entry.host, entry.app, entry.ip, entry.env, entry.available, entry.reservation, entry.since, entry.comment,
                             self.is_admin, servers_data)
             card_layout.addWidget(item)
             self.scroll_layout.addWidget(card)

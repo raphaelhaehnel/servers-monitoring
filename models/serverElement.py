@@ -5,7 +5,7 @@ class ServerElement:
         self.ip: str = ""
         self.env: str = ""
         self.available: bool | None = None
-        self.action: str = ""
+        self.reservation: str = ""
         self.since: int = 0
         self.comment: str = ""
 
@@ -15,14 +15,14 @@ class ServerElement:
         self.ip = data_element.get("ip", "")
         self.env = data_element.get("env", "")
         self.available = data_element.get("available", None)
-        self.action = data_element.get("action", "")
+        self.reservation = data_element.get("reservation", "")
         self.since = data_element.get("since", 0)
         self.comment = data_element.get("comment", "")
         return self
 
     def to_dict(self):
         return {"host": self.host, "app": self.app, "ip": self.ip, "env": self.env, "available": self.available,
-                "action": self.action, "since": self.since, "comment": self.comment}
+                "reservation": self.reservation, "since": self.since, "comment": self.comment}
 
     def clone(self):
         new = ServerElement()
@@ -31,7 +31,7 @@ class ServerElement:
         new.ip = self.ip
         new.env = self.env
         new.available = self.available
-        new.action = self.action
+        new.reservation = self.reservation
         new.since = self.since
         new.comment = self.comment
         return new

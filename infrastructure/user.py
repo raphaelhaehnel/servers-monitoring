@@ -5,6 +5,7 @@ import threading
 import time
 from pathlib import Path
 
+from infrastructure.messages.actionRequestMessage import ActionRequestMessage
 from infrastructure.messages.fetchStateMessage import FetchStateMessage
 from infrastructure.messages.forceMasterMessage import ForceMasterMessage
 from infrastructure.messages.heartbeatMessage import HeartBeatMessage
@@ -18,8 +19,11 @@ from infrastructure.shared_models.shared_clusterView import SharedClusterView
 from infrastructure.shared_models.shared_isMaster import SharedIsMaster
 from infrastructure.shared_models.shared_serversData import SharedServersData
 from infrastructure.shared_models.shared_userRequests import SharedUserRequests
+from infrastructure.validator import validate_user_request
 from models.serversData import ServersData
 from models.role import Role
+from models.userRequest import UserRequest
+from models.userRequests import UserRequests
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s - %(message)s')
 
@@ -262,6 +266,13 @@ class User:
                 connection.send(response.to_json().encode())
                 self.logger.info(f"Sent message of type {response.get_name()}")
 
+            elif isinstance(message, ActionRequestMessage):
+                user_request: UserRequest = message.user_request
+                if validate_user_request(self.shared_servers.data, user_request):
+                    requests_list: UserRequests = self.shared_requests.data
+                    requests_list.add(user_request)
+                    self.logger.info(f"A new request from {client_ip} has been added to the requests list")
+
         connection.close()
         self.shared_cluster.data.remove(client_ip)
         self.logger.warning(f"Socket of client {client_ip} has been closed.")
@@ -419,11 +430,11 @@ class User:
             self.shared_servers.data.last_update = int(time.time())
 
             self.shared_servers.typed_data.servers_list[0].available = False
-            self.shared_servers.typed_data.servers_list[0].action = "Raphael"
+            self.shared_servers.typed_data.servers_list[0].reservation = "Raphael"
             self.shared_servers.typed_data.servers_list[0].since = int(time.time())
 
             self.shared_servers.typed_data.servers_list[1].available = True
-            self.shared_servers.typed_data.servers_list[1].action = "Available"
+            self.shared_servers.typed_data.servers_list[1].reservation = "Available"
             self.shared_servers.typed_data.servers_list[1].since = -1
 
             self.shared_servers.dataChanged.emit()
@@ -435,11 +446,11 @@ class User:
             self.shared_servers.data.last_update = int(time.time())
 
             self.shared_servers.typed_data.servers_list[0].available = True
-            self.shared_servers.typed_data.servers_list[0].action = "Available"
+            self.shared_servers.typed_data.servers_list[0].reservation = "Available"
             self.shared_servers.typed_data.servers_list[0].since = -1
 
             self.shared_servers.typed_data.servers_list[1].available = False
-            self.shared_servers.typed_data.servers_list[1].action = "Odelia"
+            self.shared_servers.typed_data.servers_list[1].reservation = "Odelia"
             self.shared_servers.typed_data.servers_list[1].since = time.time()
 
             self.logger.info("SSH command sent!")

@@ -7,7 +7,7 @@
       "ip": "192.168.0.10",
       "env": "preprod",
       "available": true,
-      "action": "Available",
+      "reservation": "Available",
       "since": 0,
       "comment": ""
     },
@@ -17,7 +17,7 @@
       "ip": "192.168.0.20",
       "env": "preprod",
       "available": true,
-      "action": "Available",
+      "reservation": "Available",
       "since": 0,
       "comment": ""
     },
@@ -27,7 +27,7 @@
       "ip": "192.168.0.30",
       "env": "preprod",
       "available": true,
-      "action": "Available",
+      "reservation": "Available",
       "since": 0,
       "comment": ""
     },
@@ -37,7 +37,7 @@
       "ip": "192.168.0.40",
       "env": "preprod",
       "available": "other",
-      "action": "Operational",
+      "reservation": "Operational",
       "since": 1747941424,
       "comment": ""
     },
@@ -47,7 +47,7 @@
       "ip": "192.168.0.41",
       "env": "preprod",
       "available": "other",
-      "action": "Don't touch",
+      "reservation": "Don't touch",
       "since": 1747941424,
       "comment": ""
     },
@@ -57,7 +57,7 @@
       "ip": "192.168.0.41",
       "env": "preprod",
       "available": false,
-      "action": "Raphael",
+      "reservation": "Raphael",
       "since": 1747941424,
       "comment": ""
     }

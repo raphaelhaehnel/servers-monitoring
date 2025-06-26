@@ -10,7 +10,7 @@ from models.serversData import ServersData
 
 
 class CardItem(QWidget):
-    def __init__(self, host, app, ip, env, available, action_text, since, comment, is_admin, data):
+    def __init__(self, host, app, ip, env, available, reservation_text, since, comment, is_admin, data):
         super().__init__()
         self.host: str = host
         self.app: str = app
@@ -18,7 +18,7 @@ class CardItem(QWidget):
         self.env: str = env
         self.available: bool = available
         self.since: int = since
-        self.action_text: str = action_text
+        self.reservation_text: str = reservation_text
         self.data: ServersData = data
         self.comment: str = comment
 
@@ -36,19 +36,19 @@ class CardItem(QWidget):
             hover_text = "Free server"
         else:
             hover_text = "Book it!"
-        self.action_button = HoverButton(action_text, hover_text, parent=self)
-        self.action_button.setEnabled(is_admin)
+        self.reservation_button = HoverButton(reservation_text, hover_text, parent=self)
+        self.reservation_button.setEnabled(is_admin)
         self.start_time_label = QLabel(seconds_to_elapsed(since) if since != -1 else "")
 
         if not available:
-            self.action_button.clicked.connect(self.open_free_dialog)
+            self.reservation_button.clicked.connect(self.open_free_dialog)
         else:
-            self.action_button.clicked.connect(self.open_booking_dialog)
+            self.reservation_button.clicked.connect(self.open_booking_dialog)
 
 
         # Ensure fixed width for alignment
         for widget, width in zip(
-                (self.host_label, self.app_label, self.ip_label, self.env_label, self.available_label, self.action_button, self.start_time_label),
+                (self.host_label, self.app_label, self.ip_label, self.env_label, self.available_label, self.reservation_button, self.start_time_label),
                 (ColumnWidth.HOST, ColumnWidth.APP, ColumnWidth.IP, ColumnWidth.ENV, ColumnWidth.AVAILABLE,
                  ColumnWidth.RESERVATION, ColumnWidth.FROM)):
             widget.setFixedWidth(width)
@@ -66,7 +66,7 @@ class CardItem(QWidget):
 
         for lbl in (self.host_label, self.app_label, self.ip_label, self.env_label, self.available_label, self.start_time_label):
             lbl.setObjectName("lineLabel")
-        self.action_button.setObjectName("lineButton")
+        self.reservation_button.setObjectName("lineButton")
 
     def matches(self, query):
         q = query.lower()
@@ -77,7 +77,7 @@ class CardItem(QWidget):
                 q in self.env.lower() or
                 q in str(self.available).lower() or
                 q in str(self.since).lower() or
-                q in self.action_text.lower()
+                q in self.reservation_text.lower()
         )
 
     def matches_conditions(self, state: FilterState):
@@ -94,8 +94,8 @@ class CardItem(QWidget):
         # If neither “Available” nor “Busy” is checked, we skip availability filtering entirely
 
         # 2) Operational filter
-        # If “Operational” is checked, only show items whose action_text is exactly “operational”
-        if state.operational and self.action_text.lower() != "operational":
+        # If “Operational” is checked, only show items whose reservation_text is exactly “operational”
+        if state.operational and self.reservation_text.lower() != "operational":
             return False
 
         # 3) Type filter

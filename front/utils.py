@@ -32,7 +32,7 @@ def set_host_available(data: ServersData, host_name):
         if entry.host == host_name:
             entry.available = True
             entry.since = -1
-            entry.action = "Available"
+            entry.reservation = "Available"
             updated = True
             break
 
@@ -48,7 +48,7 @@ def book_server(data: ServersData, host_name, user_name, comment):
         if entry.host == host_name:
             entry.available = False
             entry.since = int(time.time())
-            entry.action = user_name
+            entry.reservation = user_name
             entry.comment = comment
             updated = True
             break

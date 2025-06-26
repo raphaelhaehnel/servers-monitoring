@@ -66,7 +66,7 @@
       "ip": "192.168.0.10",
       "env": "preprod",
       "available": true,
-      "action": "Available",
+      "reservation": "Available",
       "since": 0,
       "comment": ""
     }
