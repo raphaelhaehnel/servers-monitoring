@@ -57,6 +57,7 @@ class CustomTitleBar(QWidget):
         dlg = LoginDialog()
         if dlg.exec() == QDialog.Accepted:
             self.parent.is_admin = dlg.is_admin
+            self.parent.footer_frame.update_master_button()
 
         if dlg.is_admin:
             self.make_button_admin()

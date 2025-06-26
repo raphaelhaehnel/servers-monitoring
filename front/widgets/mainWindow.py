@@ -97,7 +97,7 @@ class MainWindow(QWidget):
         main_layout.addWidget(self.scroll)
 
         # Footer layout
-        self.footer_frame = FooterLayout(shared_master, [self.is_admin])
+        self.footer_frame = FooterLayout(self, shared_master)
         main_layout.addWidget(self.footer_frame)
 
         self.shared_servers = shared_servers
