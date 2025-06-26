@@ -6,3 +6,4 @@ class FilterState:
     busy: bool
     operational: bool
     type: str
+    env: str

@@ -104,6 +104,10 @@ class CardItem(QWidget):
             if state.type.lower() not in self.app.lower():
                 return False
 
+        if state.env != "All":
+            if state.env.lower() != self.env.lower():
+                return False
+
         # Passed all active filters
         return True
 

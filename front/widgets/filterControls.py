@@ -23,11 +23,18 @@ class FilterControls(QHBoxLayout):
         self.combo_type.setFixedWidth(150)
         self.combo_type.currentTextChanged.connect(self._on_any_change)
         self.addWidget(self.combo_type)
+
+        self.combo_env = QComboBox()
+        self.combo_env.addItems(["All", "preprod", "prod"])
+        self.combo_env.setFixedWidth(150)
+        self.combo_env.currentTextChanged.connect(self._on_any_change)
+        self.addWidget(self.combo_env)
+
         self.addStretch()
         self.current_filters = None
 
     def _on_any_change(self, *_):
         """Gather all current controls’ states and emit them."""
         self.current_filters = FilterState(available=self.checkbox_available.isChecked(), busy=self.checkbox_busy.isChecked(),
-            operational=self.checkbox_operational.isChecked(), type=self.combo_type.currentText())
+            operational=self.checkbox_operational.isChecked(), type=self.combo_type.currentText(), env=self.combo_env.currentText())
         self.filters_changed.emit(self.current_filters)
