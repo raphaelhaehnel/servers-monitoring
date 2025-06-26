@@ -434,7 +434,7 @@ class User:
             self.shared_servers.typed_data.servers_list[0].since = int(time.time())
 
             self.shared_servers.typed_data.servers_list[1].available = True
-            self.shared_servers.typed_data.servers_list[1].reservation = "Available"
+            self.shared_servers.typed_data.servers_list[1].reservation = ""
             self.shared_servers.typed_data.servers_list[1].since = -1
 
             self.shared_servers.dataChanged.emit()
@@ -446,7 +446,7 @@ class User:
             self.shared_servers.data.last_update = int(time.time())
 
             self.shared_servers.typed_data.servers_list[0].available = True
-            self.shared_servers.typed_data.servers_list[0].reservation = "Available"
+            self.shared_servers.typed_data.servers_list[0].reservation = ""
             self.shared_servers.typed_data.servers_list[0].since = -1
 
             self.shared_servers.typed_data.servers_list[1].available = False

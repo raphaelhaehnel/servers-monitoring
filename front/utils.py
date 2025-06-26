@@ -32,7 +32,7 @@ def set_host_available(data: ServersData, host_name):
         if entry.host == host_name:
             entry.available = True
             entry.since = -1
-            entry.reservation = "Available"
+            entry.reservation = ""
             updated = True
             break
 
