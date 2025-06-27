@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSizePolicy
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSizePolicy, QMessageBox
 
 from front.column_width import ColumnWidth
 from front.widgets.freeServerDialog import FreeServerDialog
@@ -10,7 +10,7 @@ from models.serversData import ServersData
 
 
 class CardItem(QWidget):
-    def __init__(self, host, app, ip, env, available, reservation_text, since, comment, is_admin, data):
+    def __init__(self, host, app, ip, env, available, reservation_text, since, comment, is_admin, is_master, data):
         super().__init__()
         self.host: str = host
         self.app: str = app
@@ -21,6 +21,7 @@ class CardItem(QWidget):
         self.reservation_text: str = "Available" if self.available else reservation_text
         self.data: ServersData = data
         self.comment: str = comment
+        self.can_perform_action = is_admin and is_master
 
         self.setToolTip(f"{comment}")
 
@@ -37,7 +38,6 @@ class CardItem(QWidget):
         else:
             hover_text = "Book it!"
         self.reservation_button = HoverButton(self.reservation_text, hover_text, parent=self)
-        self.reservation_button.setEnabled(is_admin)
         self.start_time_label = QLabel(seconds_to_elapsed(since) if since != -1 else "")
 
         if not available:
@@ -112,30 +112,62 @@ class CardItem(QWidget):
         return True
 
     def open_free_dialog(self):
-        main_window = self.window()
+        if not self.can_perform_action:
+            result = QMessageBox.question(self, "Permission required",
+                "You cannot free the server directly.\nDo you want to send a request instead?",
+                QMessageBox.Yes | QMessageBox.No)
+            if result != QMessageBox.Yes:
+                print("User cancelled the request.")
+                return
 
         dialog = FreeServerDialog(self.host)
         if dialog.exec():
-            print("User confirmed to free the server.")
-            set_host_available(self.data, self.host)
+            try:
+                # This checks if the CardItem has been modified by someone else
+                main_window = self.window()
 
+                if self.can_perform_action:
+                    set_host_available(self.data, self.host)
+                    print("User confirmed to free the server.")
+                else:
+                    self.request_free_server(self.host)
+                    print("User requested to free the server.")
+
+                if hasattr(main_window, 'update_items'):
+                    main_window.update_items()
+            except RuntimeError:
+                QMessageBox.critical(None, "Item Modified", "This server's data has changed during the operation.\n"
+                                                            "Please try again.")
         else:
             print("User cancelled the action.")
 
-        if hasattr(main_window, 'update_items'):
-            main_window.update_items()
 
     def open_booking_dialog(self):
-        main_window = self.window()
+        if not self.can_perform_action:
+            result = QMessageBox.question(self, "Permission required",
+                                          "You cannot book this server directly.\nDo you want to send a booking request instead?",
+                                          QMessageBox.Yes | QMessageBox.No)
+            if result != QMessageBox.Yes:
+                print("User cancelled the request.")
+                return
 
         dialog = ServerBookingDialog(self.host, self.comment)
         if dialog.exec():
-            print("User booked server")
-            booking_data = dialog.booking_data()
-            book_server(self.data, booking_data.host_name, booking_data.user, booking_data.comment)
+            try:
+                # This checks if the CardItem has been modified by someone else
+                main_window = self.window()
 
-        else:
-            print("Booking cancelled")
+                booking_data = dialog.booking_data()
+                if self.can_perform_action:
+                    book_server(self.data, booking_data.host_name, booking_data.user, booking_data.comment)
+                    print("User booked server")
+                else:
+                    self.request_book_server(booking_data)
+                    print("User requested to book the server.")
 
-        if hasattr(main_window, 'update_items'):
-            main_window.update_items()
+                if hasattr(main_window, 'update_items'):
+                    main_window.update_items()
+
+            except RuntimeError:
+                QMessageBox.critical(None, "Item Modified", "This server's data has changed during the operation.\n"
+                                                            "Please try again.")
