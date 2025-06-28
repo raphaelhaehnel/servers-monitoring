@@ -332,6 +332,8 @@ class User:
             try:
                 data, addr = sock.recvfrom(4096)
                 print(addr[0])
+                print([element.to_dict() for element in self.shared_requests.data.requests])
+
                 if addr[0] in IpManager.get_own_ips():
                     show_waiting_log = False
                     continue
