@@ -13,7 +13,7 @@ from infrastructure.shared_models.shared_userRequests import SharedUserRequests
 from infrastructure.user import User
 from models.clusterView import ClusterView
 from models.serversData import ServersData
-from models.userRequests import UserRequests
+from models.usersRequests import UsersRequests
 from front.resources.stylesheet import style
 
 if __name__ == '__main__':
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     # Initiate the shared data
     servers_data: ServersData = ServersData()
     cluster_view: ClusterView = ClusterView()
-    user_requests: UserRequests = UserRequests()
+    user_requests: UsersRequests = UsersRequests()
     is_master = False  # Must always be false at the beginning
 
     is_admin = False

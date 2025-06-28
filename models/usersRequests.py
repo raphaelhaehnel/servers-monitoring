@@ -3,7 +3,7 @@ import threading
 from models.userRequest import UserRequest
 
 
-class UserRequests:
+class UsersRequests:
     def __init__(self):
         self.requests: list[UserRequest] = []
         self.lock = threading.Lock()

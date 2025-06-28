@@ -23,7 +23,7 @@ from infrastructure.validator import validate_user_request
 from models.serversData import ServersData
 from models.role import Role
 from models.userRequest import UserRequest
-from models.userRequests import UserRequests
+from models.usersRequests import UsersRequests
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s - %(message)s')
 
@@ -43,6 +43,8 @@ class User:
 
         # Define UDP socket for sending
         self.udp_sender_socket = self.initialize_udp_sender_socket()
+        self.client_socket = None
+        self.client_socket_lock = threading.Lock()
 
         # Data
         self.shared_servers: SharedServersData = shared_servers
@@ -51,6 +53,7 @@ class User:
         self.shared_is_master: SharedIsMaster = shared_is_master
 
         self.shared_is_master.dataChanged.connect(self.start_role_tasks)
+        self.shared_requests.dataChanged.connect(self.send_request)
 
         # Tasks
         self.heartbeat_sender_thread: threading.Thread = threading.Thread(target=self._heartbeat_sender, daemon=True)
@@ -85,6 +88,26 @@ class User:
             self.start_master_tasks()
         else:
             self.start_slave_tasks()
+
+    def send_request(self):
+        if self.shared_is_master.data:
+            return
+
+        if not self.shared_requests.data.requests:
+
+            return
+        if not self.client_socket:
+            self.logger.warning("Socket not ready, cannot send request")
+            return
+
+        message = ActionRequestMessage(self.shared_requests.data.requests[-1])
+        with self.client_socket_lock:
+            try:
+                self.client_socket.send(message.to_json().encode())
+                self.logger.info("Sent message of type ActionRequestMessage")
+
+            except Exception as e:
+                self.logger.error(f"Failed to send request: {e}")
 
     def load_server_data(self):
         # Ensure the directory exists
@@ -188,18 +211,19 @@ class User:
 
     def _tcp_client(self):
         self.logger.info(f"Thread <TCP_CLIENT> started!")
-        client_socket = None
 
         try:
-            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client_socket.connect((self.master_ip, self.config.TCP_PORT))
+            self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.client_socket.connect((self.master_ip, self.config.TCP_PORT))
             self.logger.info(f"Connected to master {self.master_ip}")
 
             while not self.stop_slave_event.is_set():
-                client_socket.send(FetchStateMessage().to_json().encode())
+
+                with self.client_socket_lock:
+                    self.client_socket.send(FetchStateMessage().to_json().encode())
                 self.logger.info("Sent message of type FetchStateMessage")
 
-                data = client_socket.recv(8192)
+                data = self.client_socket.recv(8192)
 
                 if not data:
                     self.logger.warning("Master closed connection unexpectedly.")
@@ -216,7 +240,8 @@ class User:
 
                 self.stop_slave_event.wait(self.config.FETCH_INTERVAL / 1000)
 
-            client_socket.close()
+            self.client_socket.close()
+            self.client_socket = None
 
         except (ConnectionRefusedError, TimeoutError) as e:
             self.logger.warning(f"Cannot connect to master {self.master_ip}: {e}")
@@ -225,9 +250,9 @@ class User:
             self.logger.warning(f"Connection lost from master {self.master_ip}: {e}")
 
         finally:
-            if client_socket is not None:
+            if self.client_socket is not None:
                 try:
-                    client_socket.close()
+                    self.client_socket.close()
                     self.logger.info("TCP client socket closed.")
                 except Exception:
                     pass
@@ -269,7 +294,7 @@ class User:
             elif isinstance(message, ActionRequestMessage):
                 user_request: UserRequest = message.user_request
                 if validate_user_request(self.shared_servers.data, user_request):
-                    requests_list: UserRequests = self.shared_requests.data
+                    requests_list: UsersRequests = self.shared_requests.data
                     requests_list.add(user_request)
                     self.logger.info(f"A new request from {client_ip} has been added to the requests list")
 

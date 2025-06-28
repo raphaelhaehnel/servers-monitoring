@@ -167,7 +167,7 @@ class MainWindow(QWidget):
             card_layout.setContentsMargins(5, 2, 5, 2)
 
             item = CardItem(entry.host, entry.app, entry.status, entry.env, entry.available, entry.reservation, entry.since, entry.comment,
-                            self.is_admin, self.shared_is_master.data, servers_data)
+                            self.is_admin, self.shared_is_master.data, servers_data, self.shared_requests)
             card_layout.addWidget(item)
             self.scroll_layout.addWidget(card)
             self.items.append((card, item))

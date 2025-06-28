@@ -1,12 +1,12 @@
 from PySide6.QtCore import QObject, Signal, Property
 
-from models.userRequests import UserRequests
+from models.usersRequests import UsersRequests
 
 
 class SharedUserRequests(QObject):
     dataChanged = Signal()
 
-    def __init__(self, initial: UserRequests):
+    def __init__(self, initial: UsersRequests):
         super().__init__()
         self._data = initial
 
@@ -17,4 +17,4 @@ class SharedUserRequests(QObject):
         self._data = new
         self.dataChanged.emit()
 
-    data: UserRequests = Property(object, _get_data, _set_data, notify=dataChanged)
+    data: UsersRequests = Property(object, _get_data, _set_data, notify=dataChanged)

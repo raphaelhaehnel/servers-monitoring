@@ -1,3 +1,5 @@
+import time
+
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSizePolicy, QMessageBox
 
 from front.column_width import ColumnWidth
@@ -5,12 +7,14 @@ from front.widgets.freeServerDialog import FreeServerDialog
 from front.widgets.hoverButton import HoverButton
 from front.widgets.serverBookingDialog import ServerBookingDialog
 from front.utils import set_host_available, book_server, seconds_to_elapsed
+from infrastructure.shared_models.shared_userRequests import SharedUserRequests
 from models.filterState import FilterState
 from models.serversData import ServersData
+from models.userRequest import UserRequest
 
 
 class CardItem(QWidget):
-    def __init__(self, host, app, ip, env, available, reservation_text, since, comment, is_admin, is_master, data):
+    def __init__(self, host, app, ip, env, available, reservation_text, since, comment, is_admin, is_master, data, shared_users_requests):
         super().__init__()
         self.host: str = host
         self.app: str = app
@@ -20,6 +24,7 @@ class CardItem(QWidget):
         self.since: int = since
         self.reservation_text: str = "Available" if self.available else reservation_text
         self.data: ServersData = data
+        self.shared_users_requests: SharedUserRequests = shared_users_requests
         self.comment: str = comment
         self.can_perform_action = is_admin and is_master
 
@@ -113,7 +118,7 @@ class CardItem(QWidget):
 
     def open_free_dialog(self):
         if not self.can_perform_action:
-            result = QMessageBox.question(self, "Permission required",
+            result = QMessageBox.question(None, "Permission required",
                 "You cannot free the server directly.\nDo you want to send a request instead?",
                 QMessageBox.Yes | QMessageBox.No)
             if result != QMessageBox.Yes:
@@ -130,7 +135,7 @@ class CardItem(QWidget):
                     set_host_available(self.data, self.host)
                     print("User confirmed to free the server.")
                 else:
-                    self.request_free_server(self.host)
+                    self.request_free_server()
                     print("User requested to free the server.")
 
                 if hasattr(main_window, 'update_items'):
@@ -144,7 +149,7 @@ class CardItem(QWidget):
 
     def open_booking_dialog(self):
         if not self.can_perform_action:
-            result = QMessageBox.question(self, "Permission required",
+            result = QMessageBox.question(None, "Permission required",
                                           "You cannot book this server directly.\nDo you want to send a booking request instead?",
                                           QMessageBox.Yes | QMessageBox.No)
             if result != QMessageBox.Yes:
@@ -171,3 +176,19 @@ class CardItem(QWidget):
             except RuntimeError:
                 QMessageBox.critical(None, "Item Modified", "This server's data has changed during the operation.\n"
                                                             "Please try again.")
+
+    def request_free_server(self):
+        self.shared_users_requests.data.requests.append(UserRequest(timestamp=time.time(),
+                                                                    available=True,
+                                                                    host=self.host,
+                                                                    user="",
+                                                                    comment=""))
+        self.shared_users_requests.dataChanged.emit()
+
+    def request_book_server(self, booking_data):
+        self.shared_users_requests.data.requests.append(UserRequest(timestamp=time.time(),
+                                                                    available=False,
+                                                                    host=self.host,
+                                                                    user=booking_data.user,
+                                                                    comment=booking_data.comment))
+        self.shared_users_requests.dataChanged.emit()

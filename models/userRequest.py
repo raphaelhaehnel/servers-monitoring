@@ -1,11 +1,11 @@
 class UserRequest:
-    def __init__(self):
-        self.nodeIP: str = ""
-        self.timestamp: int = 0
-        self.available: bool = False
-        self.host: str = ""
-        self.user: str = ""
-        self.comment: str = ""
+    def __init__(self, nodeIP="", timestamp=0, available=False, host="", user="", comment=""):
+        self.nodeIP: str = nodeIP
+        self.timestamp: int = timestamp
+        self.available: bool = available
+        self.host: str = host
+        self.user: str = user
+        self.comment: str = comment
 
     def from_json(self, data):
         self.nodeIP = data.get("nodeIP", "")
