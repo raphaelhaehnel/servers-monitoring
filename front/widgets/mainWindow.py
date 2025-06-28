@@ -122,6 +122,9 @@ class MainWindow(QWidget):
         self.update_items(force=True)
 
     def update_items(self, force=False):
+
+        #TODO refactor this function. We must erase only CardItem objects that have been modified, and keep the ones that remained unchanged
+
         servers_data: ServersData = self.shared_servers.data
         readable_date = datetime.fromtimestamp(servers_data.last_update)
         formatted_date = readable_date.strftime("%Y-%m-%d %H:%M:%S")
