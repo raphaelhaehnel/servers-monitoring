@@ -22,7 +22,7 @@ class CardItem(QWidget):
         self.env: str = env
         self.available: bool = available
         self.since: int = since
-        self.reservation_text: str = "Available" if self.available else reservation_text
+        self.reservation_text: str = "Available" if self.available == True else reservation_text
         self.data: ServersData = data
         self.shared_users_requests: SharedUserRequests = shared_users_requests
         self.comment: str = comment

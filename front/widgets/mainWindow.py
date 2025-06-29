@@ -122,61 +122,123 @@ class MainWindow(QWidget):
         self.update_items(force=True)
 
     def update_items(self, force=False):
-
-        #TODO refactor this function. We must erase only CardItem objects that have been modified, and keep the ones that remained unchanged
-
         servers_data: ServersData = self.shared_servers.data
-        readable_date = datetime.fromtimestamp(servers_data.last_update)
-        formatted_date = readable_date.strftime("%Y-%m-%d %H:%M:%S")
-        self.footer_frame.label_last_update.setText("Last update time: " + formatted_date)
 
-        # Compare current and previous data using a JSON string dump for simplicity
-        if not servers_data.servers_list:
+        # 1) If there's no list or it's empty, do nothing (and clear previous_data)
+        if not hasattr(servers_data, "servers_list") or not servers_data.servers_list:
             print("There is no loaded data, ignoring update.")
+            # Prevent any future clone() calls until we have data
+            self.previous_data = None
             return
 
-        current_data_str = json.dumps([s.to_dict() for s in servers_data.servers_list], sort_keys=True)
+        # 2) Now that we know we have a proper list, update the footer
+        self.refresh_last_update(servers_data.last_update)
 
-        if self.previous_data is not None:
-            previous_data_str = json.dumps([s.to_dict() for s in self.previous_data.servers_list], sort_keys=True)
-            if current_data_str == previous_data_str and not force:
-                print("No modification. Items remaining untouched.")
-                return
+        # 3) First-ever build or force-rebuild?
+        if self.previous_data is None or force:
+            self._full_rebuild(servers_data)
+            return
 
-        print("A modification has been detected. Updating items.")
+        # --- here follows your “patch-only-the-changed-rows” logic ---
+        prev_map = {e.host: e.to_dict() for e in self.previous_data.servers_list}
+        curr_map = {e.host: e.to_dict() for e in servers_data.servers_list}
+
+        # 4) Sort current snapshot
+        data_list = list(servers_data.servers_list)
+        if self.sort_mode == 1:
+            data_list.sort(key=lambda s: s.since)
+        elif self.sort_mode == 2:
+            data_list.sort(key=lambda s: s.since, reverse=True)
+
+        # 5) Compare whole snapshot quickly
+        curr_str = json.dumps([e.to_dict() for e in data_list], sort_keys=True)
+        prev_str = json.dumps([e.to_dict() for e in self.previous_data.servers_list], sort_keys=True)
+        if curr_str == prev_str and not force:
+            print("No modification. Items remaining untouched.")
+            return
+
+        print("A modification has been detected. Patching changed rows.")
+
+        # 6) Build a map of host -> (frame, card)
+        old_map = {card.host: (frame, card) for frame, card in self.items}
+
+        # 7) For each changed host, replace its row in place
+        for idx, (frame, card) in enumerate(self.items):
+            host = card.host
+            if curr_map.get(host) != prev_map.get(host):
+                # remove old
+                self.scroll_layout.takeAt(idx)
+                frame.deleteLater()
+
+                # find new entry object
+                entry = next(e for e in servers_data.servers_list if e.host == host)
+
+                # create new frame+card
+                new_frame = QFrame()
+                new_frame.setFrameShape(QFrame.StyledPanel)
+                new_frame.setObjectName("cardFrame")
+                layout = QVBoxLayout(new_frame)
+                layout.setContentsMargins(5, 2, 5, 2)
+
+                new_card = CardItem(entry.host, entry.app, entry.status, entry.env, entry.available, entry.reservation,
+                    entry.since, entry.comment, self.is_admin, self.shared_is_master.data, servers_data,
+                    self.shared_requests)
+                layout.addWidget(new_card)
+
+                # insert it back
+                self.scroll_layout.insertWidget(idx, new_frame)
+                self.items[idx] = (new_frame, new_card)
+
+        # 8) Finally, update previous_data **after** we’ve successfully iterated
         self.previous_data = servers_data.clone()
 
-        # Remove every widget in the scroll_layout
+        # 9) Re-apply filters so the patched rows show/hide correctly
+        self.filter_items(self.filter_panel.search_bar.text())
+        self.filter_control_items(self.filter_panel.filter_controls.current_filters)
+
+    def _full_rebuild(self, servers_data: ServersData):
+        """Tear down everything and rebuild from scratch."""
+        # 1) Clear all existing rows
         while self.scroll_layout.count():
             w = self.scroll_layout.takeAt(0).widget()
             if w:
                 w.deleteLater()
         self.items.clear()
 
-        # copy the list so we don’t mutate the shared data
+        # 2) Sort
         data_list = list(servers_data.servers_list)
-
-        if self.sort_mode == 1:  # ascending
+        if self.sort_mode == 1:
             data_list.sort(key=lambda s: s.since)
-        elif self.sort_mode == 2:  # descending
+        elif self.sort_mode == 2:
             data_list.sort(key=lambda s: s.since, reverse=True)
-        # else: sort_mode == 0 → leave in “natural” server order
 
+        # 3) Build every row
         for entry in data_list:
-            card = QFrame()
-            card.setFrameShape(QFrame.StyledPanel)
-            card.setObjectName("cardFrame")
-            card_layout = QVBoxLayout(card)
-            card_layout.setContentsMargins(5, 2, 5, 2)
+            frame = QFrame()
+            frame.setFrameShape(QFrame.StyledPanel)
+            frame.setObjectName("cardFrame")
+            layout = QVBoxLayout(frame)
+            layout.setContentsMargins(5, 2, 5, 2)
 
-            item = CardItem(entry.host, entry.app, entry.status, entry.env, entry.available, entry.reservation, entry.since, entry.comment,
-                            self.is_admin, self.shared_is_master.data, servers_data, self.shared_requests)
-            card_layout.addWidget(item)
-            self.scroll_layout.addWidget(card)
-            self.items.append((card, item))
+            card = CardItem(entry.host, entry.app, entry.status, entry.env, entry.available, entry.reservation,
+                entry.since, entry.comment, self.is_admin, self.shared_is_master.data, servers_data,
+                self.shared_requests)
+            layout.addWidget(card)
 
+            self.scroll_layout.addWidget(frame)
+            self.items.append((frame, card))
+
+        # 4) Only now that build succeeded do we snapshot
+        self.previous_data = servers_data.clone()
+
+        # 5) Apply filters
         self.filter_items(self.filter_panel.search_bar.text())
         self.filter_control_items(self.filter_panel.filter_controls.current_filters)
+
+    def refresh_last_update(self, last_update):
+        readable_date = datetime.fromtimestamp(last_update)
+        formatted_date = readable_date.strftime("%Y-%m-%d %H:%M:%S")
+        self.footer_frame.label_last_update.setText("Last update time: " + formatted_date)
 
     def filter_items(self, text):
         q = text.lower()
