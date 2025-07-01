@@ -44,13 +44,18 @@ class RequestsDialog(QDialog):
 
         for row, r in enumerate(reqs):
             self.table.setItem(row, 0, QTableWidgetItem(r.user))
+            self.table.item(row, 0).setTextAlignment(Qt.AlignCenter)
             self.table.setRowHeight(row, 40)
 
             t = datetime.fromtimestamp(r.timestamp)
             self.table.setItem(row, 1, QTableWidgetItem(t.strftime("%Y-%m-%d %H:%M:%S")))
+            self.table.item(row, 1).setTextAlignment(Qt.AlignCenter)
             self.table.setItem(row, 2, QTableWidgetItem("Yes" if r.available else "No"))
+            self.table.item(row, 2).setTextAlignment(Qt.AlignCenter)
             self.table.setItem(row, 3, QTableWidgetItem(r.host))
+            self.table.item(row, 3).setTextAlignment(Qt.AlignCenter)
             self.table.setItem(row, 4, QTableWidgetItem(r.comment))
+            self.table.item(row, 4).setTextAlignment(Qt.AlignCenter)
 
             # Add Accept button
             button = QPushButton("Accept")
@@ -63,6 +68,7 @@ class RequestsDialog(QDialog):
             layout.addWidget(button)
             layout.setAlignment(Qt.AlignCenter)
             self.table.setCellWidget(row, 5, container)
+        self.table.resizeColumnsToContents()
 
     def accept_request(self, req: UserRequest):
         if validate_user_request(self.shared_servers.data, req):
