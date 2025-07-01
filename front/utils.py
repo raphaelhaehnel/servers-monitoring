@@ -21,7 +21,7 @@ def seconds_to_elapsed(seconds):
 
     return "-".join(parts) if parts else "0"
 
-def set_host_available(data: ServersData, host_name):
+def free_server(data: ServersData, host_name):
     """
     Mark the given host as available in the JSON file at `path`.
     Updates the 'available' flag to True and sets 'since' to the current timestamp.

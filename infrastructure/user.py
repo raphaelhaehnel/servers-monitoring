@@ -298,6 +298,8 @@ class User:
                     requests_list.add(user_request)
                     self.logger.info(f"A new request from {client_ip} has been added to the requests list")
 
+                else:
+                    self.logger.warning(f"Got an invalid request from {client_ip}: user {user_request.user}, host {user_request.host}")
         connection.close()
         self.shared_cluster.data.remove(client_ip)
         self.logger.warning(f"Socket of client {client_ip} has been closed.")

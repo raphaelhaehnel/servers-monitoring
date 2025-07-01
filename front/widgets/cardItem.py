@@ -6,7 +6,8 @@ from front.column_width import ColumnWidth
 from front.widgets.freeServerDialog import FreeServerDialog
 from front.widgets.hoverButton import HoverButton
 from front.widgets.serverBookingDialog import ServerBookingDialog
-from front.utils import set_host_available, book_server, seconds_to_elapsed
+from front.utils import free_server, book_server, seconds_to_elapsed
+from infrastructure.shared_models.shared_serversData import SharedServersData
 from infrastructure.shared_models.shared_userRequests import SharedUserRequests
 from models.filterState import FilterState
 from models.serversData import ServersData
@@ -14,7 +15,7 @@ from models.userRequest import UserRequest
 
 
 class CardItem(QWidget):
-    def __init__(self, host, app, ip, env, available, reservation_text, since, comment, is_admin, is_master, data, shared_users_requests):
+    def __init__(self, host, app, ip, env, available, reservation_text, since, comment, is_admin, is_master, shared_servers, shared_users_requests):
         super().__init__()
         self.host: str = host
         self.app: str = app
@@ -23,7 +24,7 @@ class CardItem(QWidget):
         self.available: bool = available
         self.since: int = since
         self.reservation_text: str = "Available" if self.available == True else reservation_text
-        self.data: ServersData = data
+        self.shared_servers: SharedServersData = shared_servers
         self.shared_users_requests: SharedUserRequests = shared_users_requests
         self.comment: str = comment
         self.can_perform_action = is_admin and is_master
@@ -128,18 +129,14 @@ class CardItem(QWidget):
         dialog = FreeServerDialog(self.host)
         if dialog.exec():
             try:
-                # This checks if the CardItem has been modified by someone else
-                main_window = self.window()
-
                 if self.can_perform_action:
-                    set_host_available(self.data, self.host)
+                    free_server(self.shared_servers.data, self.host)
+                    self.shared_servers.dataChanged.emit()
                     print("User confirmed to free the server.")
                 else:
                     self.request_free_server()
                     print("User requested to free the server.")
 
-                if hasattr(main_window, 'update_items'):
-                    main_window.update_items()
             except RuntimeError:
                 QMessageBox.critical(None, "Item Modified", "This server's data has changed during the operation.\n"
                                                             "Please try again.")
@@ -159,19 +156,14 @@ class CardItem(QWidget):
         dialog = ServerBookingDialog(self.host, self.comment)
         if dialog.exec():
             try:
-                # This checks if the CardItem has been modified by someone else
-                main_window = self.window()
-
                 booking_data = dialog.booking_data()
                 if self.can_perform_action:
-                    book_server(self.data, booking_data.host_name, booking_data.user, booking_data.comment)
+                    book_server(self.shared_servers.data, booking_data.host_name, booking_data.user, booking_data.comment)
+                    self.shared_servers.dataChanged.emit()
                     print("User booked server")
                 else:
                     self.request_book_server(booking_data)
                     print("User requested to book the server.")
-
-                if hasattr(main_window, 'update_items'):
-                    main_window.update_items()
 
             except RuntimeError:
                 QMessageBox.critical(None, "Item Modified", "This server's data has changed during the operation.\n"

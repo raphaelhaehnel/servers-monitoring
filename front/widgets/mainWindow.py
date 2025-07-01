@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScroll
 from PySide6.QtCore import Qt
 
 from front.column_width import ColumnWidth
+from front.widgets.RequestsDialog import RequestsDialog
 from front.widgets.customTitleBar import CustomTitleBar
 from front.widgets.filterPanel import FilterPanel
 from front.widgets.footerLayout import FooterLayout
@@ -103,6 +104,7 @@ class MainWindow(QWidget):
 
         self.shared_cluster: SharedClusterView = shared_cluster
         self.shared_requests: SharedUserRequests = shared_requests
+        self.shared_requests.dataChanged.connect(self.update_request_badge)
 
         self.update_items()
         print("Initialized the front")
@@ -181,7 +183,7 @@ class MainWindow(QWidget):
                 layout.setContentsMargins(5, 2, 5, 2)
 
                 new_card = CardItem(entry.host, entry.app, entry.status, entry.env, entry.available, entry.reservation,
-                    entry.since, entry.comment, self.is_admin, self.shared_is_master.data, servers_data,
+                    entry.since, entry.comment, self.is_admin, self.shared_is_master.data, self.shared_servers,
                     self.shared_requests)
                 layout.addWidget(new_card)
 
@@ -221,7 +223,7 @@ class MainWindow(QWidget):
             layout.setContentsMargins(5, 2, 5, 2)
 
             card = CardItem(entry.host, entry.app, entry.status, entry.env, entry.available, entry.reservation,
-                entry.since, entry.comment, self.is_admin, self.shared_is_master.data, servers_data,
+                entry.since, entry.comment, self.is_admin, self.shared_is_master.data, self.shared_servers,
                 self.shared_requests)
             layout.addWidget(card)
 
@@ -250,3 +252,11 @@ class MainWindow(QWidget):
         for card, item in self.items:
             card.setVisible(
                 item.matches_conditions(state) and item.matches(self.filter_panel.search_bar.text().lower()))
+
+    def show_requests_dialog(self):
+        dlg = RequestsDialog(self.shared_servers, self.shared_requests, self.is_admin, self.shared_is_master.data, parent=self)
+        dlg.exec()
+
+    def update_request_badge(self):
+        request_count = len(self.shared_requests.data.requests)
+        self.footer_frame.view_requests_btn.set_count(request_count)

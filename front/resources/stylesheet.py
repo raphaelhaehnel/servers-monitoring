@@ -265,5 +265,37 @@ style = """
         color: #555555;
         border-color: #444444;
     }
+    
+    QTableWidget {
+        background-color: #3c3f41;
+        color: #DDDDDD;
+        border: 1px solid #555;
+        gridline-color: #5c5f61;
+        selection-background-color: #5c5f61;
+        selection-color: white;
+        font-size: 13px;
+        border-radius: 6px;
+    }
+    
+    QTableView {
+        gridline-color: transparent;
+    }
+    
+    QHeaderView::section {
+        background-color: #21252B;
+        color: #DDDDDD;
+        padding: 6px;
+        border: 1px solid #5c5f61;
+        font-weight: bold;
+    }
+    
+    QTableWidget::item {
+        padding: 6px;
+    }
+    
+    QTableCornerButton::section {
+        background-color: #21252B;
+        border: 1px solid #5c5f61;
+    }
 }
 """

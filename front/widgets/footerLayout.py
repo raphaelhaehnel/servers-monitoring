@@ -1,6 +1,7 @@
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QPushButton, QLabel
 
+from front.widgets.notificationButton import NotificationButton
 from infrastructure.shared_models.shared_isMaster import SharedIsMaster
 
 
@@ -23,6 +24,10 @@ class FooterLayout(QFrame):
         self.label_last_update = QLabel("Not up-to-date")
         self.label_last_update.setObjectName("lastUpdateTime")
         self.footer_layout.addWidget(self.label_last_update)
+
+        self.view_requests_btn = NotificationButton("View Requests")
+        self.view_requests_btn.clicked(self.parent().show_requests_dialog)
+        self.footer_layout.addWidget(self.view_requests_btn)
 
         # Stretch pushes the next widgets to the right
         self.footer_layout.addStretch()
