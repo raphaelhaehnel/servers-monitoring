@@ -11,7 +11,7 @@ class FooterLayout(QFrame):
         super().__init__(parent)
         self.setObjectName("footerFrame")
         self.footer_layout = QHBoxLayout(self)
-        self.footer_layout.setContentsMargins(10, 5, 10, 5)
+        self.footer_layout.setContentsMargins(10, 8, 10, 8) #left, top, right, bottom
         self.footer_layout.setAlignment(Qt.AlignVCenter)
 
         self.shared_is_master: SharedIsMaster = shared_master

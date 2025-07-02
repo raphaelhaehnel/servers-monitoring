@@ -159,10 +159,9 @@ style = """
     }
     
     #versionLabel, #copyrightName {
-        background-color: #282C34;
         font-family: 'Segoe UI', sans-serif;
         font-size: 12px;
-        color: #555555;
+        color: #a3a0a0;
         background-color: #333740;
     }
     

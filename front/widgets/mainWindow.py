@@ -22,9 +22,8 @@ from models.serversData import ServersData
 # TODO In the lower right side, display when was the last update of the servers, and add a button for refresh now
 # TODO add settings: show scripts from rpmqa ?
 # TODO add 'about'
-# TODO work on the bottom bar
 # TODO Add user-comment and server-comment
-# TODO add mechanism: slave send request to the admin to choose a server. Add a request list for the admin
+# TODO Add sync button for each server (don't make the last update globally) and use this generic function for SSH requests with threads
 
 class MainWindow(QWidget):
     def __init__(self, shared_servers: SharedServersData, shared_cluster: SharedClusterView, shared_requests: SharedUserRequests, shared_master: SharedIsMaster, is_admin: bool):
@@ -32,6 +31,7 @@ class MainWindow(QWidget):
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setObjectName("MainWindow")
         main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 10, 0, 0)
 
         self.is_admin = is_admin
         self.previous_data: ServersData | None = None
@@ -74,8 +74,8 @@ class MainWindow(QWidget):
         header_layout.addWidget(self.since_btn)
         header_layout.addSpacing(20)
 
+        header_layout.setContentsMargins(10, 5, 10, 0)
         main_layout.addLayout(header_layout)
-
 
         # sort_mode: 0 = no sort, 1 = ascending, 2 = descending
         self.sort_mode: int = 0
