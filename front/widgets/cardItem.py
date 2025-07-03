@@ -1,21 +1,25 @@
 import time
 
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSizePolicy, QMessageBox
 
 from front.column_width import ColumnWidth
 from front.widgets.freeServerDialog import FreeServerDialog
 from front.widgets.hoverButton import HoverButton
+from front.widgets.refreshButton import RefreshButton
 from front.widgets.serverBookingDialog import ServerBookingDialog
 from front.utils import free_server, book_server, seconds_to_elapsed
 from infrastructure.shared_models.shared_serversData import SharedServersData
 from infrastructure.shared_models.shared_userRequests import SharedUserRequests
 from models.filterState import FilterState
-from models.serversData import ServersData
 from models.userRequest import UserRequest
 
 
 class CardItem(QWidget):
-    def __init__(self, host, app, ip, env, available, reservation_text, since, comment, is_admin, is_master, shared_servers, shared_users_requests):
+    _refresh_done = Signal()
+
+    def __init__(self, host, app, ip, env, available, reservation_text, since, comment, is_admin, is_master,
+                 shared_servers, shared_users_requests):
         super().__init__()
         self.host: str = host
         self.app: str = app
@@ -51,15 +55,19 @@ class CardItem(QWidget):
         else:
             self.reservation_button.clicked.connect(self.open_booking_dialog)
 
-
         # Ensure fixed width for alignment
-        for widget, width in zip(
-                (self.host_label, self.app_label, self.ip_label, self.env_label, self.available_label, self.reservation_button, self.start_time_label),
-                (ColumnWidth.HOST, ColumnWidth.APP, ColumnWidth.IP, ColumnWidth.ENV, ColumnWidth.AVAILABLE,
-                 ColumnWidth.RESERVATION, ColumnWidth.FROM)):
+        for widget, width in zip((self.host_label, self.app_label, self.ip_label, self.env_label, self.available_label,
+                                  self.reservation_button, self.start_time_label), (
+                                         ColumnWidth.HOST, ColumnWidth.APP, ColumnWidth.IP, ColumnWidth.ENV,
+                                         ColumnWidth.AVAILABLE, ColumnWidth.RESERVATION, ColumnWidth.FROM)
+                                 ):
             widget.setFixedWidth(width)
             widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
             layout.addWidget(widget)
+
+        if self.can_perform_action:
+            self.refresh_btn = RefreshButton(self._refresh_task, self)
+            layout.addWidget(self.refresh_btn)
 
         self.setLayout(layout)
 
@@ -70,21 +78,26 @@ class CardItem(QWidget):
         else:
             self.setObjectName("availableUnknown")
 
-        for lbl in (self.host_label, self.app_label, self.ip_label, self.env_label, self.available_label, self.start_time_label):
+        for lbl in (self.host_label, self.app_label, self.ip_label, self.env_label, self.available_label,
+                    self.start_time_label):
             lbl.setObjectName("lineLabel")
         self.reservation_button.setObjectName("lineButton")
 
+    def _refresh_task(self):
+        # Simulate or perform real refresh work
+        time.sleep(2)  # After work, card labels could be updated here
+
     def matches(self, query):
         q = query.lower()
-        return (
-                q in self.host.lower() or
-                q in self.app.lower() or
-                q in self.ip.lower() or
-                q in self.env.lower() or
-                q in str(self.available).lower() or
-                q in str(self.since).lower() or
-                q in self.reservation_text.lower()
-        )
+
+        in_host = q in self.host.lower()
+        in_app = q in self.app.lower()
+        in_ip = q in self.ip.lower()
+        in_env = q in self.env.lower()
+        in_available = q in str(self.available).lower()
+        in_since = q in str(self.since).lower()
+        in_reservation = q in self.reservation_text.lower()
+        return in_host or in_app or in_ip or in_env or in_available or in_since or in_reservation
 
     def matches_conditions(self, state: FilterState):
         # 1) Availability filter
@@ -120,8 +133,8 @@ class CardItem(QWidget):
     def open_free_dialog(self):
         if not self.can_perform_action:
             result = QMessageBox.question(None, "Permission required",
-                "You cannot free the server directly.\nDo you want to send a request instead?",
-                QMessageBox.Yes | QMessageBox.No)
+                                          "You cannot free the server directly.\nDo you want to send a request instead?",
+                                          QMessageBox.Yes | QMessageBox.No)
             if result != QMessageBox.Yes:
                 print("User cancelled the request.")
                 return
@@ -142,7 +155,6 @@ class CardItem(QWidget):
                                                             "Please try again.")
         else:
             print("User cancelled the action.")
-
 
     def open_booking_dialog(self):
         if not self.can_perform_action:
@@ -170,17 +182,9 @@ class CardItem(QWidget):
                                                             "Please try again.")
 
     def request_free_server(self):
-        self.shared_users_requests.data.requests.append(UserRequest(timestamp=time.time(),
-                                                                    available=True,
-                                                                    host=self.host,
-                                                                    user="",
-                                                                    comment=""))
+        self.shared_users_requests.data.requests.append(UserRequest(timestamp=time.time(), available=True, host=self.host, user="", comment=""))
         self.shared_users_requests.dataChanged.emit()
 
     def request_book_server(self, booking_data):
-        self.shared_users_requests.data.requests.append(UserRequest(timestamp=time.time(),
-                                                                    available=False,
-                                                                    host=self.host,
-                                                                    user=booking_data.user,
-                                                                    comment=booking_data.comment))
+        self.shared_users_requests.data.requests.append(UserRequest(timestamp=time.time(), available=False, host=self.host, user=booking_data.user, comment=booking_data.comment))
         self.shared_users_requests.dataChanged.emit()

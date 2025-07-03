@@ -34,7 +34,10 @@ class FilterControls(QHBoxLayout):
         self.current_filters = None
 
     def _on_any_change(self, *_):
+        print("Function _on_any_change called!!")
         """Gather all current controls’ states and emit them."""
-        self.current_filters = FilterState(available=self.checkbox_available.isChecked(), busy=self.checkbox_busy.isChecked(),
-            operational=self.checkbox_operational.isChecked(), type=self.combo_type.currentText(), env=self.combo_env.currentText())
+        self.current_filters = FilterState(available=self.checkbox_available.isChecked(),
+                                           busy=self.checkbox_busy.isChecked(),
+                                           operational=self.checkbox_operational.isChecked(),
+                                           type=self.combo_type.currentText(), env=self.combo_env.currentText())
         self.filters_changed.emit(self.current_filters)
