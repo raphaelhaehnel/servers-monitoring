@@ -1,11 +1,12 @@
 import json
 from datetime import datetime
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QFrame, QPushButton
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QPushButton
 from PySide6.QtCore import Qt
 
 from front.column_width import ColumnWidth
 from front.widgets.RequestsDialog import RequestsDialog
+from front.widgets.customScrollArea import CustomScrollArea
 from front.widgets.customTitleBar import CustomTitleBar
 from front.widgets.filterPanel import FilterPanel
 from front.widgets.footerLayout import FooterLayout
@@ -80,7 +81,7 @@ class MainWindow(QWidget):
         # sort_mode: 0 = no sort, 1 = ascending, 2 = descending
         self.sort_mode: int = 0
 
-        self.scroll = QScrollArea()
+        self.scroll = CustomScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll_content = QWidget()
         self.scroll_layout = QVBoxLayout(self.scroll_content)
