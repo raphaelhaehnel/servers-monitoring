@@ -17,5 +17,11 @@
 <!--    <SavingInterval>120000</SavingInterval>-->
     <SavingInterval>2000</SavingInterval>
 
+    <SSHConnection>
+        <Port>2200</Port>
+        <Username>testuser</Username>
+        <Password>password</Password>
+    </SSHConnection>
+
     <ServerPollingInterval>5000</ServerPollingInterval>
 </InfrastructureConfig>

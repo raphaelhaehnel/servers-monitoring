@@ -162,9 +162,6 @@ class MainWindow(QWidget):
 
         print("A modification has been detected. Patching changed rows.")
 
-        # 6) Build a map of host -> (frame, card)
-        old_map = {card.host: (frame, card) for frame, card in self.items}
-
         # 7) For each changed host, replace its row in place
         for idx, (frame, card) in enumerate(self.items):
             host = card.host

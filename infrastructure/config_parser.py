@@ -19,3 +19,8 @@ class ConfigParser:
         self.SAVING_NETWORK_DIRECTORY = root.find('SavingNetworkDirectory').text
         self.SAVING_INTERVAL = int(root.find('SavingInterval').text)
         self.SERVER_POLLING_INTERVAL = int(root.find('ServerPollingInterval').text)
+
+        ssh_connection_element = root.find('SSHConnection')
+        self.SSH_PORT = int(ssh_connection_element.find("Port").text)
+        self.SSH_USERNAME = ssh_connection_element.find("Username").text
+        self.SSH_PASSWORD = ssh_connection_element.find("Password").text

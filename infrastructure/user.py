@@ -5,6 +5,7 @@ import threading
 import time
 from pathlib import Path
 
+from infrastructure.config_parser import ConfigParser
 from infrastructure.messages.actionRequestMessage import ActionRequestMessage
 from infrastructure.messages.fetchStateMessage import FetchStateMessage
 from infrastructure.messages.forceMasterMessage import ForceMasterMessage
@@ -29,9 +30,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(na
 
 
 class User:
-    def __init__(self, config, shared_servers: SharedServersData, shared_cluster: SharedClusterView, shared_requests: SharedUserRequests, shared_is_master: SharedIsMaster):
+    def __init__(self, config: ConfigParser, shared_servers: SharedServersData, shared_cluster: SharedClusterView, shared_requests: SharedUserRequests, shared_is_master: SharedIsMaster):
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.config = config
+        self.config: ConfigParser = config
         self.ip: str = IpManager.get_own_ip()
         self.stop_core_event: threading.Event = threading.Event()
         self.stop_master_event = threading.Event()
@@ -472,6 +473,7 @@ class User:
 
             self.shared_servers.dataChanged.emit()
 
+            # ssh_echo_test(self.config, "localhost", {"rpmqa", "Status", "domains"})
             self.logger.info("SSH command sent!")
 
             self.stop_master_event.wait(self.config.SERVER_POLLING_INTERVAL / 1000)
