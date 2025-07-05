@@ -20,9 +20,6 @@ from models.serversData import ServersData
 
 
 # TODO perform multiple threading to get all servers at once (10 by 10)
-# TODO In the lower right side, display when was the last update of the servers, and add a button for refresh now
-# TODO add settings: show scripts from rpmqa ?
-# TODO add 'about'
 # TODO Add user-comment and server-comment
 # TODO Add sync button for each server (don't make the last update globally) and use this generic function for SSH requests with threads
 
