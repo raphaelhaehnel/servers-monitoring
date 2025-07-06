@@ -139,11 +139,11 @@ class CardItem(QWidget):
                 print("User cancelled the request.")
                 return
 
-        dialog = FreeServerDialog(self.host)
+        dialog = FreeServerDialog(self.host, self.comment)
         if dialog.exec():
             try:
                 if self.can_perform_action:
-                    free_server(self.shared_servers.data, self.host)
+                    free_server(self.shared_servers.data, self.host, dialog.comment_edit.text())
                     self.shared_servers.dataChanged.emit()
                     print("User confirmed to free the server.")
                 else:
