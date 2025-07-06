@@ -47,7 +47,10 @@ def book_server(data: ServersData, host_name, user_name, comment):
     updated = False
     for entry in data.servers_list:
         if entry.host == host_name:
-            entry.available = False
+            if user_name == "Operational":
+                entry.available = "other"
+            else:
+                entry.available = False
             entry.since = int(time.time())
             entry.reservation = user_name
             entry.comment = comment

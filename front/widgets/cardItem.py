@@ -147,7 +147,7 @@ class CardItem(QWidget):
                     self.shared_servers.dataChanged.emit()
                     print("User confirmed to free the server.")
                 else:
-                    self.request_free_server()
+                    self.request_free_server(dialog.comment_edit.text())
                     print("User requested to free the server.")
 
             except RuntimeError:
@@ -181,8 +181,8 @@ class CardItem(QWidget):
                 QMessageBox.critical(None, "Item Modified", "This server's data has changed during the operation.\n"
                                                             "Please try again.")
 
-    def request_free_server(self):
-        self.shared_users_requests.data.requests.append(UserRequest(timestamp=time.time(), available=True, host=self.host, user="", comment=""))
+    def request_free_server(self, comment):
+        self.shared_users_requests.data.requests.append(UserRequest(timestamp=time.time(), available=True, host=self.host, user="", comment=comment))
         self.shared_users_requests.dataChanged.emit()
 
     def request_book_server(self, booking_data):

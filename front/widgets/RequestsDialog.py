@@ -75,7 +75,7 @@ class RequestsDialog(QDialog):
             if not req.available:
                 book_server(self.shared_servers.data, req.host, req.user, req.comment)
             else:
-                free_server(self.shared_servers.data, req.host)
+                free_server(self.shared_servers.data, req.host, req.comment)
 
             print(f"Request for host {req.host} accepted")
         else:
