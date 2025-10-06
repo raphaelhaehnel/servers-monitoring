@@ -8,8 +8,6 @@ class ConfigParser:
 
         self.UDP_PORT = int(root.find('UdpPort').text)
         self.TCP_PORT = int(root.find('TcpPort').text)
-        self.HTTP_PORT = int(root.find('HttpPort').text)
-        self.HTTP_PORT_FRONT = int(root.find('HttpPortFront').text)
         self.FETCH_INTERVAL = int(root.find('FetchInterval').text)
         self.HEARTBEAT_INTERVAL = int(root.find('HeartbeatInterval').text)
         self.HEARTBEAT_RETRIES = int(root.find('HeartbeatRetries').text)

@@ -2,8 +2,6 @@
 <InfrastructureConfig>
     <UdpPort>8577</UdpPort>
     <TcpPort>8677</TcpPort>
-    <HttpPort>8777</HttpPort>
-    <HttpPortFront>8778</HttpPortFront>
     <FetchInterval>5000</FetchInterval>
     <ClientTcpTimeout>120000</ClientTcpTimeout>
 
