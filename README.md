@@ -9,6 +9,14 @@ FacIT is a tool designed for development teams that use shared servers to test t
 ## Project Scope
 FacIT was originally developed for the Israel Air Force (IAF) to assist development teams in identifying available servers on which they can deploy and test their applications. The tool provides an automated and collaborative environment for managing shared computing resources without the need for a centralized server installation.
 
+## Features
+
+- **Automated server monitoring** – Periodically retrieves information (apps, IPs, environments) via SSH.
+- **Real-time collaboration** – Keeps all connected users synchronized through peer-to-peer communication.
+- **Master–Slave architecture** – One node (master) collects and shares data; others (slaves) stay updated automatically.
+- **Server reservation system** – Admins can reserve or free servers and track who is using each one.
+- **Standalone operation** – Runs locally on the user’s computer; no central server or installation required.
+- **Cross-platform GUI** – Built with PySide6 (Qt for Python) for Windows, Linux, and macOS.
 
 ## Installation
 FacIT runs on Windows, Linux, and macOS systems that support:
