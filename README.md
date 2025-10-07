@@ -1,5 +1,8 @@
 # Peer-to-Peer Servers Monitoring
 
+<img width="1146" height="600" alt="facIT-1" src="https://github.com/user-attachments/assets/e2805342-f766-4fd8-84c2-c2bb4411f697" />
+
+
 ## Roles
 ### Master
 >* Sends heartbeats every 2 seconds over UDP
